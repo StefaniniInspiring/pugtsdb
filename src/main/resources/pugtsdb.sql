@@ -1,7 +1,7 @@
 CREATE CACHED TABLE IF NOT EXISTS metric (
-  "id"   VARCHAR NOT NULL,
-  "name" VARCHAR NULL,
-  "type" VARCHAR NULL,
+  "id"   INTEGER NOT NULL,
+  "name" VARCHAR NOT NULL,
+  "type" VARCHAR NOT NULL,
   PRIMARY KEY ("id")
 );
 
@@ -16,7 +16,7 @@ CREATE CACHED TABLE IF NOT EXISTS data (
   "timestamp" TIMESTAMP NOT NULL,
   "value"     BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp"),
-  CONSTRAINT data_metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT data__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
@@ -25,8 +25,8 @@ CREATE CACHED TABLE IF NOT EXISTS metric_tag (
   "tag_name"  VARCHAR NOT NULL,
   "tag_value" VARCHAR NOT NULL,
   PRIMARY KEY ("metric_id", "tag_name", "tag_value"),
-  CONSTRAINT metric_tag_metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT metric_tag__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id"),
-  CONSTRAINT metric_tag_tag_name_fkey FOREIGN KEY ("tag_name", "tag_value")
+  CONSTRAINT metric_tag__tag_name_fkey FOREIGN KEY ("tag_name", "tag_value")
   REFERENCES tag ("name", "value")
 );
