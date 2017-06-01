@@ -5,8 +5,12 @@ import java.util.Map;
 
 public class BooleanMetric extends Metric<Boolean> {
 
-    public BooleanMetric(String name, Map<String, String> tags) {
-        super(name, tags);
+    public BooleanMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
+        super(name, tags, timestamp, value);
+    }
+
+    public BooleanMetric(String name, Map<String, String> tags, Long timestamp, Boolean value) {
+        super(name, tags, timestamp, value);
     }
 
     @Override
@@ -15,7 +19,7 @@ public class BooleanMetric extends Metric<Boolean> {
     }
 
     @Override
-    public void setValueFromBytes(byte[] bytes) {
-        this.value = Bytes.toBoolean(bytes);
+    public Boolean getValueFromBytes(byte[] bytes) {
+        return Bytes.toBoolean(bytes);
     }
 }

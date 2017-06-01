@@ -11,11 +11,12 @@ import org.h2.jdbcx.JdbcConnectionPool;
 
 public class PugTSDB {
 
-    public static final String DATABASE_SCRIPT = "pugtsdb.sql";
+    private static final String DATABASE_SCRIPT = "pugtsdb.sql";
 
     private final JdbcConnectionPool ds;
-    private final MetricRepository metricRepository = new MetricRepository();
-    private final DataRepository dataRepository = new DataRepository();
+    private final ThreadLocal<Connection> connectionThreadLocal = ThreadLocal.withInitial(this::openConnection);
+    private final MetricRepository metricRepository = new MetricRepository(this::getConnection);
+    private final DataRepository dataRepository = new DataRepository(this::getConnection);
 
     public PugTSDB(String storageDir, String username, String password) throws SQLException {
         ds = initDatabase(storageDir, username, password);
@@ -27,40 +28,77 @@ public class PugTSDB {
         connection.setAutoCommit(false);
         Statement statement = connection.createStatement();
 
-        new Scanner(getClass().getClassLoader().getResourceAsStream(DATABASE_SCRIPT))
-                .useDelimiter(";")
-                .forEachRemaining(sql -> {
-                    try {
-                        statement.execute(sql);
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                });
-
-        connection.commit();
+        try {
+            new Scanner(getClass().getClassLoader().getResourceAsStream(DATABASE_SCRIPT))
+                    .useDelimiter(";")
+                    .forEachRemaining(sql -> {
+                        try {
+                            statement.execute(sql);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    });
+            connection.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+            connection.rollback();
+        } finally {
+            statement.close();
+        }
 
         return ds;
     }
 
     public void upsert(Metric<?> metric) {
         try {
-            metricRepository.setConnection(ds.getConnection());
-
             if (metricRepository.notExistsMetric(metric.getId())) {
                 metricRepository.insertMetric(metric);
-            } else {
-                dataRepository.upsertMetricValue(metric);
             }
 
-            metricRepository.getConnection().commit();
+            dataRepository.upsertMetricValue(metric);
+
+            getConnection().commit();
         } catch (SQLException e) {
             try {
-                metricRepository.getConnection().rollback();
+                getConnection().rollback();
             } catch (SQLException e1) {
                 e1.printStackTrace();
             }
 
             e.printStackTrace();
+        } finally {
+            closeConnection();
+        }
+    }
+
+    public void close() {
+        ds.dispose();
+    }
+
+    private Connection getConnection() {
+        return connectionThreadLocal.get();
+    }
+
+    private Connection openConnection() {
+        Connection connection = null;
+
+        try {
+            connection = ds.getConnection();
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return connection;
+    }
+
+    private void closeConnection() {
+        try {
+            getConnection().close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            connectionThreadLocal.remove();
         }
     }
 }

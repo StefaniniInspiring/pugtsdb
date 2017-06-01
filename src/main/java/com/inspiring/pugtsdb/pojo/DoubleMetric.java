@@ -5,8 +5,12 @@ import java.util.Map;
 
 public class DoubleMetric extends Metric<Double> {
 
-    public DoubleMetric(String name, Map<String, String> tags) {
-        super(name, tags);
+    public DoubleMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
+        super(name, tags, timestamp, value);
+    }
+
+    public DoubleMetric(String name, Map<String, String> tags, Long timestamp, Double value) {
+        super(name, tags, timestamp, value);
     }
 
     @Override
@@ -15,7 +19,7 @@ public class DoubleMetric extends Metric<Double> {
     }
 
     @Override
-    public void setValueFromBytes(byte[] bytes) {
-        this.value = Bytes.toDouble(bytes);
+    public Double getValueFromBytes(byte[] bytes) {
+        return Bytes.toDouble(bytes);
     }
 }

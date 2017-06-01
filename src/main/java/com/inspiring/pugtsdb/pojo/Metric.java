@@ -4,21 +4,34 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.inspiring.pugtsdb.util.MurmurHash3.murmurhash3_x86_32;
+import static java.lang.System.currentTimeMillis;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 
 public abstract class Metric<T> {
 
-    final Integer id;
-    final String name;
-    final Map<String, String> tags;
-    Long timestamp;
-    T value;
+    protected final Integer id;
+    protected final String name;
+    protected final Map<String, String> tags;
+    protected final Long timestamp;
+    protected final T value;
 
-    public Metric(String name, Map<String, String> tags) {
-        String hashString = name + ":" + tags;
-        this.id = murmurhash3_x86_32(hashString, 0, hashString.length(), hashString.length());
+    public Metric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
+        this.value = getValueFromBytes(value);
+        this.timestamp = timestamp != null ? timestamp : currentTimeMillis();
+        this.tags = tags != null ? unmodifiableMap(new HashMap<>(tags)) : emptyMap();
         this.name = name;
-        this.tags = unmodifiableMap(new HashMap<>(tags));
+        String hashString = name + ":" + this.tags;
+        this.id = murmurhash3_x86_32(hashString, 0, hashString.length(), hashString.length());
+    }
+
+    public Metric(String name, Map<String, String> tags, Long timestamp, T value) {
+        this.value = value;
+        this.timestamp = timestamp != null ? timestamp : currentTimeMillis();
+        this.tags = tags != null ? unmodifiableMap(new HashMap<>(tags)) : emptyMap();
+        this.name = name;
+        String hashString = name + ":" + this.tags;
+        this.id = murmurhash3_x86_32(hashString, 0, hashString.length(), hashString.length());
     }
 
     public Integer getId() {
@@ -37,21 +50,13 @@ public abstract class Metric<T> {
         return timestamp;
     }
 
-    public void setTimestamp(Long timestamp) {
-        this.timestamp = timestamp;
-    }
-
     public T getValue() {
         return value;
     }
 
-    public void setValue(T value) {
-        this.value = value;
-    }
-
     public abstract byte[] getValueAsBytes();
 
-    public abstract void setValueFromBytes(byte[] bytes);
+    public abstract T getValueFromBytes(byte[] bytes);
 
     @Override
     public String toString() {

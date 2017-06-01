@@ -12,7 +12,7 @@ CREATE CACHED TABLE IF NOT EXISTS tag (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS data (
-  "metric_id" VARCHAR   NOT NULL,
+  "metric_id" INTEGER   NOT NULL,
   "timestamp" TIMESTAMP NOT NULL,
   "value"     BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp"),
@@ -21,7 +21,7 @@ CREATE CACHED TABLE IF NOT EXISTS data (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS metric_tag (
-  "metric_id" VARCHAR NOT NULL,
+  "metric_id" INTEGER NOT NULL,
   "tag_name"  VARCHAR NOT NULL,
   "tag_value" VARCHAR NOT NULL,
   PRIMARY KEY ("metric_id", "tag_name", "tag_value"),

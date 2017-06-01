@@ -5,8 +5,12 @@ import java.util.Map;
 
 public class StringMetric extends Metric<String> {
 
-    public StringMetric(String name, Map<String, String> tags) {
-        super(name, tags);
+    public StringMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
+        super(name, tags, timestamp, value);
+    }
+
+    public StringMetric(String name, Map<String, String> tags, Long timestamp, String value) {
+        super(name, tags, timestamp, value);
     }
 
     @Override
@@ -15,7 +19,7 @@ public class StringMetric extends Metric<String> {
     }
 
     @Override
-    public void setValueFromBytes(byte[] bytes) {
-        this.value = Bytes.toUtf8String(bytes);
+    public String getValueFromBytes(byte[] bytes) {
+        return Bytes.toUtf8String(bytes);
     }
 }

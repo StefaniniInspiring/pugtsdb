@@ -1,16 +1,17 @@
 package com.inspiring.pugtsdb.repository;
 
 import java.sql.Connection;
+import java.util.function.Supplier;
 
-public interface Repository {
+public abstract class Repository {
 
-    ThreadLocal<Connection> CONNECTION_THREAD_LOCAL = new ThreadLocal<>();
+    private final Supplier<Connection> connectionSupplier;
 
-    default Connection getConnection() {
-        return CONNECTION_THREAD_LOCAL.get();
+    public Repository(Supplier<Connection> connectionSupplier) {
+        this.connectionSupplier = connectionSupplier;
     }
 
-    default void setConnection(Connection connection) {
-        CONNECTION_THREAD_LOCAL.set(connection);
+    protected Connection getConnection() {
+        return connectionSupplier.get();
     }
 }

@@ -1,13 +1,9 @@
 package com.inspiring.pugtsdb;
 
 import com.inspiring.pugtsdb.pojo.LongMetric;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
-import javax.sql.DataSource;
 
 public class Main {
 
@@ -16,30 +12,10 @@ public class Main {
 
         Map<String, String> tags = new HashMap<>();
         tags.put("tag1", "val1");
+        tags.put("tag2", "val2");
 
-        LongMetric metric = new LongMetric("metrica-long", tags);
+        LongMetric metric = new LongMetric("metrica-long", tags, null, 10L);
 
         pugTSDB.upsert(metric);
-    }
-
-
-
-    private static void createDatabase(DataSource ds) throws SQLException {
-        Connection connection = ds.getConnection();
-        connection.setAutoCommit(false);
-        Statement statement = connection.createStatement();
-
-        new Scanner(ds.getClass().getClassLoader().getResourceAsStream("pugtsdb.sql"))
-                .useDelimiter(";")
-                .forEachRemaining(sql -> {
-                    try {
-                        statement.execute(sql);
-                        System.out.println(sql + " ok");
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                });
-
-        connection.commit();
     }
 }
