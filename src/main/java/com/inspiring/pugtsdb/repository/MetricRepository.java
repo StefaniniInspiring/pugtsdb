@@ -1,8 +1,8 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
 import com.inspiring.pugtsdb.pojo.Metric;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,7 +40,7 @@ public class MetricRepository extends Repository {
 
     private final TagRepository tagRepository;
 
-    public MetricRepository(Supplier<Connection> connectionSupplier) {
+    public MetricRepository(Supplier<PugConnection> connectionSupplier) {
         super(connectionSupplier);
         this.tagRepository = new TagRepository(connectionSupplier);
     }

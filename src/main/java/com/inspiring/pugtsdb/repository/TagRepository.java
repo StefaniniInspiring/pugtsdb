@@ -1,7 +1,7 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
@@ -16,7 +16,7 @@ public class TagRepository extends Repository {
             + "            \"value\" ) "
             + " VALUES (?, ?)          ";
 
-    public TagRepository(Supplier<Connection> connectionSupplier) {
+    public TagRepository(Supplier<PugConnection> connectionSupplier) {
         super(connectionSupplier);
     }
 

@@ -1,8 +1,8 @@
 package com.inspiring.pugtsdb.repository;
 
-import com.inspiring.pugtsdb.sql.PugSQLException;
 import com.inspiring.pugtsdb.pojo.Metric;
-import java.sql.Connection;
+import com.inspiring.pugtsdb.sql.PugConnection;
+import com.inspiring.pugtsdb.sql.PugSQLException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -18,7 +18,7 @@ public class DataRepository extends Repository {
             + "            \"value\")     "
             + " VALUES (?, ?, ?)          ";
 
-    public DataRepository(Supplier<Connection> connectionSupplier) {
+    public DataRepository(Supplier<PugConnection> connectionSupplier) {
         super(connectionSupplier);
     }
 
