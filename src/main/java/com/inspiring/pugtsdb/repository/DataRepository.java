@@ -1,13 +1,12 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.sql.PugSQLException;
 import com.inspiring.pugtsdb.pojo.Metric;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.function.Supplier;
-
-import static java.lang.System.currentTimeMillis;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class DataRepository extends Repository {
@@ -23,14 +22,14 @@ public class DataRepository extends Repository {
         super(connectionSupplier);
     }
 
-    public void upsertMetricValue(Metric<?> metric) throws SQLException {
-        Timestamp timestamp = new Timestamp(metric.getTimestamp() != null ? metric.getTimestamp() : currentTimeMillis());
-
+    public void upsertMetricValue(Metric<?> metric) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_MERGE_DATA)) {
             statement.setInt(1, metric.getId());
-            statement.setTimestamp(2, timestamp);
+            statement.setTimestamp(2, new Timestamp(metric.getTimestamp()));
             statement.setBytes(3, metric.getValueAsBytes());
             statement.execute();
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot upsert metric %s value with statement %s", metric, SQL_MERGE_DATA, e);
         }
     }
 }

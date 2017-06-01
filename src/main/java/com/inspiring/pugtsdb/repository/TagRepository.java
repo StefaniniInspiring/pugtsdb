@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.sql.PugSQLException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -19,7 +20,7 @@ public class TagRepository extends Repository {
         super(connectionSupplier);
     }
 
-    public void upsertTags(Map<String, String> tags) throws SQLException {
+    public void upsertTags(Map<String, String> tags) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_MERGE_TAG)) {
             tags.forEach((name, value) -> {
                 try {
@@ -27,9 +28,11 @@ public class TagRepository extends Repository {
                     statement.setString(2, value);
                     statement.execute();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    throw new PugSQLException("Cannot upsert tag %s=%s with statement %s", name, value, SQL_MERGE_TAG, e);
                 }
             });
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot upsert tags %s with statement %s", tags, SQL_MERGE_TAG, e);
         }
     }
 }

@@ -8,7 +8,7 @@ import java.util.Map;
 public class Main {
 
     public static void main(String[] args) throws SQLException {
-        PugTSDB pugTSDB = new PugTSDB("jdbc:h2:/tmp/pugtsdb", "na", "na");
+        PugTSDB pugTSDB = new PugTSDB("/tmp/pugtsdb", "na", "na");
 
         Map<String, String> tags = new HashMap<>();
         tags.put("tag1", "val1");

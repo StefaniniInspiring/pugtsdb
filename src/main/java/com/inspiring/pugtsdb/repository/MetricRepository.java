@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.sql.PugSQLException;
 import com.inspiring.pugtsdb.pojo.Metric;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -44,35 +45,28 @@ public class MetricRepository extends Repository {
         this.tagRepository = new TagRepository(connectionSupplier);
     }
 
-    public boolean notExistsMetric(Integer id) throws SQLException {
+    public boolean notExistsMetric(Integer id) {
         return !existsMetric(id);
     }
 
-    public boolean existsMetric(Integer id) throws SQLException {
-        PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_METRIC_BY_ID);
-        statement.setInt(1, id);
+    public boolean existsMetric(Integer id) {
+        try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_METRIC_BY_ID)) {
+            statement.setInt(1, id);
 
-        try {
             return statement.executeQuery().first();
-        } finally {
-            statement.close();
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot check metric %s existence with query %s", id, SQL_SELECT_METRIC_BY_ID, e);
         }
     }
 
-    public Metric<?> selectMetric(Integer id) throws SQLException {
-        PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_METRIC_BY_ID);
-        statement.setInt(1, id);
-        ResultSet resultSet = statement.executeQuery();
-
-        return buildMetric(resultSet);
-    }
-
-    public void insertMetric(Metric<?> metric) throws SQLException {
+    public void insertMetric(Metric<?> metric) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_INSERT_METRIC)) {
             statement.setInt(1, metric.getId());
             statement.setString(2, metric.getName());
             statement.setString(3, metric.getClass().getName());
             statement.execute();
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot insert metric %s with statement %s", metric, SQL_INSERT_METRIC, e);
         }
 
         tagRepository.upsertTags(metric.getTags());
@@ -85,9 +79,16 @@ public class MetricRepository extends Repository {
                     statement.setString(3, value);
                     statement.execute();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    throw new PugSQLException("Cannot insert relationship between metric %s and tag %s=%s with statement %s",
+                                              metric,
+                                              name,
+                                              value,
+                                              SQL_INSERT_METRIC_TAG,
+                                              e);
                 }
             });
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot insert relationships between metric %s and tags %s with statement %s", metric, metric.getTags(), SQL_INSERT_METRIC_TAG, e);
         }
     }
 
