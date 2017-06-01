@@ -1,7 +1,6 @@
 package com.inspiring.pugtsdb.repository;
 
 import com.inspiring.pugtsdb.sql.PugConnection;
-import java.sql.Connection;
 import java.util.function.Supplier;
 
 public abstract class Repository {
@@ -12,7 +11,7 @@ public abstract class Repository {
         this.connectionSupplier = connectionSupplier;
     }
 
-    protected Connection getConnection() {
+    protected PugConnection getConnection() {
         return connectionSupplier.get();
     }
 }
