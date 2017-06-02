@@ -1,10 +1,11 @@
 package com.inspiring.pugtsdb;
 
-import com.inspiring.pugtsdb.sql.PugSQLException;
+import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.pojo.Metric;
 import com.inspiring.pugtsdb.repository.DataRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.sql.PugConnection;
+import com.inspiring.pugtsdb.sql.PugSQLException;
 import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -63,7 +64,7 @@ public class PugTSDB implements Closeable {
             dataRepository.upsertMetricValue(metric);
 
             getConnection().commit();
-        } catch (PugSQLException e) {
+        } catch (PugException e) {
             getConnection().rollback();
             throw e;
         } finally {

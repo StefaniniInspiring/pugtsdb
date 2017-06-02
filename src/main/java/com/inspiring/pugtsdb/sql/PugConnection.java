@@ -24,13 +24,9 @@ public class PugConnection implements Wrapper, Connection {
 
     private final Connection connection;
 
-    public PugConnection(Connection connection) {
-        try {
-            this.connection = connection;
-            this.connection.setAutoCommit(false);
-        } catch (SQLException e) {
-            throw new PugSQLException("Cannot set a connection auto-commit to false", e);
-        }
+    public PugConnection(Connection connection) throws SQLException {
+        this.connection = connection;
+        this.connection.setAutoCommit(false);
     }
 
     @Override
@@ -304,12 +300,13 @@ public class PugConnection implements Wrapper, Connection {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T unwrap(Class<T> iface) throws SQLException {
         return isWrapperFor(iface) ? (T) connection : null;
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return Connection.class.isAssignableFrom(iface);
+        return iface.isAssignableFrom(connection.getClass());
     }
 }

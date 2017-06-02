@@ -1,6 +1,8 @@
 package com.inspiring.pugtsdb.sql;
 
-public class PugSQLException extends RuntimeException {
+import com.inspiring.pugtsdb.exception.PugException;
+
+public class PugSQLException extends PugException {
 
     public PugSQLException(String message, Throwable cause) {
         super(message, cause);
