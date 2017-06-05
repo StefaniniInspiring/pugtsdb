@@ -14,7 +14,7 @@ public class Main {
         tags.put("tag1", "val1");
         tags.put("tag2", "val2");
 
-        LongMetric metric = new LongMetric("metrica-long", tags, null, 10L);
+        LongMetric metric = new LongMetric("metrica-long", tags, null, "ok".getBytes());
 
         pugTSDB.upsert(metric);
     }

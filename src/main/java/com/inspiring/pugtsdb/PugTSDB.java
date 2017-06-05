@@ -1,6 +1,7 @@
 package com.inspiring.pugtsdb;
 
 import com.inspiring.pugtsdb.exception.PugException;
+import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.pojo.Metric;
 import com.inspiring.pugtsdb.repository.DataRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
@@ -13,6 +14,8 @@ import java.sql.Statement;
 import java.util.Scanner;
 import org.h2.jdbcx.JdbcConnectionPool;
 
+import static com.inspiring.pugtsdb.util.Strings.isBlank;
+
 public class PugTSDB implements Closeable {
 
     private static final String DATABASE_SCRIPT = "pugtsdb.sql";
@@ -22,8 +25,21 @@ public class PugTSDB implements Closeable {
     private final MetricRepository metricRepository = new MetricRepository(this::getConnection);
     private final DataRepository dataRepository = new DataRepository(this::getConnection);
 
-    public PugTSDB(String storageDir, String username, String password) {
-        ds = initDatabase(storageDir, username, password);
+    public PugTSDB(String storagePath, String username, String password) {
+        if (isBlank(storagePath)) {
+            throw new PugIllegalArgumentException("Database storage path cannot be null nor empty");
+        }
+
+        if (isBlank(username)) {
+            throw new PugIllegalArgumentException("Database username cannot be null");
+        }
+
+        if (isBlank(password)) {
+            throw new PugIllegalArgumentException("Database password cannot be null");
+        }
+
+        ds = initDatabase(storagePath, username, password);
+
         currentConnection = ThreadLocal.withInitial(() -> {
             try {
                 return new PugConnection(ds.getConnection());
@@ -33,9 +49,9 @@ public class PugTSDB implements Closeable {
         });
     }
 
-    private JdbcConnectionPool initDatabase(String storageDir, String username, String password) {
+    private JdbcConnectionPool initDatabase(String storagePath, String username, String password) {
         try {
-            JdbcConnectionPool ds = JdbcConnectionPool.create("jdbc:h2:" + storageDir, username, password);
+            JdbcConnectionPool ds = JdbcConnectionPool.create("jdbc:h2:" + storagePath, username, password);
 
             try (Connection connection = ds.getConnection();
                  Statement statement = connection.createStatement();
@@ -56,6 +72,10 @@ public class PugTSDB implements Closeable {
     }
 
     public void upsert(Metric<?> metric) {
+        if (metric == null) {
+            throw new PugIllegalArgumentException("Cannot upsert a null metric");
+        }
+
         try {
             if (metricRepository.notExistsMetric(metric.getId())) {
                 metricRepository.insertMetric(metric);

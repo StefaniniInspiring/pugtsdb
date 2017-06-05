@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.util;
 
-import com.inspiring.pugtsdb.exception.PugValueConversionException;
+import com.inspiring.pugtsdb.exception.PugConversionException;
 import java.nio.charset.StandardCharsets;
 
 public class Bytes {
@@ -11,7 +11,7 @@ public class Bytes {
         }
 
         if (bytes.length != Long.BYTES) {
-            throw new PugValueConversionException(bytes, Long.class, Long.BYTES);
+            throw new PugConversionException(bytes, Long.class, Long.BYTES);
         }
 
         long value = 0;
@@ -64,7 +64,7 @@ public class Bytes {
         }
 
         if (bytes.length != 1) {
-            throw new PugValueConversionException(bytes, Boolean.class, 1);
+            throw new PugConversionException(bytes, Boolean.class, 1);
         }
 
         return bytes[0] != (byte) 0;

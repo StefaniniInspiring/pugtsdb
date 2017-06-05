@@ -63,7 +63,7 @@ public class MetricRepository extends Repository {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_INSERT_METRIC)) {
             statement.setInt(1, metric.getId());
             statement.setString(2, metric.getName());
-            statement.setString(3, metric.getClass().getName());
+            statement.setString(3, metric.getClass().getTypeName());
             statement.execute();
         } catch (SQLException e) {
             throw new PugSQLException("Cannot insert metric %s with statement %s", metric, SQL_INSERT_METRIC, e);
