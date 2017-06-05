@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.repository;
 
-import com.inspiring.pugtsdb.pojo.Metric;
+import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
 import java.sql.PreparedStatement;

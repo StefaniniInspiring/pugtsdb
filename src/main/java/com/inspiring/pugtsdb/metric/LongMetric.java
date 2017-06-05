@@ -1,4 +1,4 @@
-package com.inspiring.pugtsdb.pojo;
+package com.inspiring.pugtsdb.metric;
 
 import com.inspiring.pugtsdb.util.Bytes;
 import java.util.Map;

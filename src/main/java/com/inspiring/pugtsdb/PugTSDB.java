@@ -2,7 +2,7 @@ package com.inspiring.pugtsdb;
 
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
-import com.inspiring.pugtsdb.pojo.Metric;
+import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.DataRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.sql.PugConnection;

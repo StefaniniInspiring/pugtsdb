@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb;
 
-import com.inspiring.pugtsdb.pojo.LongMetric;
+import com.inspiring.pugtsdb.metric.LongMetric;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
