@@ -27,12 +27,16 @@ public abstract class Metric<T> {
         String example = "class StringMetric extends Metric<String> {\n"
                 + "\n"
                 + "    public StringMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {\n"
-                + "        super(name, tags, timestamp, new String(value));\n"
+                + "        this(name, tags, timestamp, new String(value));\n"
+                + "    }\n"
+                + "\n"
+                + "    public StringMetric(String name, Map<String, String> tags, Long timestamp, String value) {\n"
+                + "        super(name, tags, timestamp, value);\n"
                 + "    }\n"
                 + "\n"
                 + "    @Override\n"
                 + "    public byte[] getValueAsBytes() {\n"
-                + "        return this.value.getBytes();\n"
+                + "        return value.getBytes();\n"
                 + "    }\n"
                 + "}";
         String constructorArgs = "String name, Map<String, String> tags, Long timestamp, byte[] value";
