@@ -38,7 +38,7 @@ public class PugCreationSteps {
     }
 
     @When("^create a Pug instance with storage path \"([^\"]*)\" user \"([^\"]*)\" and pass \"([^\"]*)\"$")
-    public void create_a_Pug_instance_with_storage_path_user_and_pass(String storage, String user, String pass) throws Throwable {
+    public void createAPugInstanceWithStoragePathUserAndPass(String storage, String user, String pass) throws Throwable {
         try {
             actualPug = new PugTSDB(actualStorage = storage, user, pass);
         } catch (Exception e) {
@@ -47,7 +47,7 @@ public class PugCreationSteps {
     }
 
     @When("^create a Pug instance with storage path null user \"([^\"]*)\" and pass \"([^\"]*)\"$")
-    public void create_a_Pug_instance_with_storage_path_null_user_and_pass(String user, String pass) throws Throwable {
+    public void createAPugInstanceWithStoragePathNullUserAndPass(String user, String pass) throws Throwable {
         try {
             actualPug = new PugTSDB(null, user, pass);
         } catch (Exception e) {
@@ -56,7 +56,7 @@ public class PugCreationSteps {
     }
 
     @When("^create a Pug instance with storage path \"([^\"]*)\" user null and pass \"([^\"]*)\"$")
-    public void create_a_Pug_instance_with_storage_path_user_null_and_pass(String storage, String pass) throws Throwable {
+    public void createAPugInstanceWithStoragePathUserNullAndPass(String storage, String pass) throws Throwable {
         try {
             actualPug = new PugTSDB(actualStorage = storage, null, pass);
         } catch (Exception e) {
@@ -65,7 +65,7 @@ public class PugCreationSteps {
     }
 
     @When("^create a Pug instance with storage path \"([^\"]*)\" user \"([^\"]*)\" and pass null$")
-    public void create_a_Pug_instance_with_storage_path_user_and_pass_null(String storage, String user) throws Throwable {
+    public void createAPugInstanceWithStoragePathUserAndPassNull(String storage, String user) throws Throwable {
         try {
             actualPug = new PugTSDB(actualStorage = storage, user, null);
         } catch (Exception e) {
@@ -74,13 +74,13 @@ public class PugCreationSteps {
     }
 
     @Then("^the Pug instance is created successful$")
-    public void the_Pug_instance_is_created_successful() throws Throwable {
+    public void thePugInstanceIsCreatedSuccessful() throws Throwable {
         assertNull(actualException);
         assertNotNull(actualPug);
     }
 
     @Then("^an illegal argument exception are thrown$")
-    public void an_illegal_argument_exception_are_thrown() throws Throwable {
+    public void anIllegalArgumentExceptionAreThrown() throws Throwable {
         assertNotNull(actualException);
         assertTrue("Exception is not an " + PugIllegalArgumentException.class.getSimpleName() + ": " + actualException.getClass(),
                    actualException instanceof PugIllegalArgumentException);

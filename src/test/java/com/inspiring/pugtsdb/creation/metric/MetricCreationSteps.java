@@ -29,27 +29,27 @@ public class MetricCreationSteps {
     private Exception actualException;
 
     @Given("^the type \"([^\"]*)\"$")
-    public void the_type(String type) throws Throwable {
+    public void theType(String type) throws Throwable {
         metricType = type;
     }
 
     @Given("^the name \"([^\"]*)\"$")
-    public void the_name(String name) throws Throwable {
+    public void theName(String name) throws Throwable {
         metricName = name;
     }
 
     @Given("^the tags:$")
-    public void the_tags(Map<String, String> tags) throws Throwable {
+    public void theTags(Map<String, String> tags) throws Throwable {
         metricTags = tags;
     }
 
     @Given("^the timestamp (\\d+)$")
-    public void the_timestamp(long timestamp) throws Throwable {
+    public void theTimestamp(long timestamp) throws Throwable {
         metricTimestamp = timestamp;
     }
 
     @Given("^the value \"([^\"]*)\"$")
-    public void the_value(String value) throws Throwable {
+    public void theValue(String value) throws Throwable {
         metricValue = value;
     }
 
@@ -84,7 +84,7 @@ public class MetricCreationSteps {
     }
 
     @When("^the metric is created$")
-    public void the_metric_is_created() throws Throwable {
+    public void theMetricIsCreated() throws Throwable {
         try {
             switch (metricType) {
                 case "Boolean":
@@ -126,13 +126,13 @@ public class MetricCreationSteps {
     }
 
     @Then("^the metric creation is successful$")
-    public void the_metric_creation_is_successful() throws Throwable {
+    public void theMetricCreationIsSuccessful() throws Throwable {
         assertNull(actualException);
         assertNotNull(actualMetric);
     }
 
     @Then("^an illegal argument exception are thrown$")
-    public void an_illegal_argument_exception_are_thrown() throws Throwable {
+    public void anIllegalArgumentExceptionAreThrown() throws Throwable {
         assertNotNull(actualException);
         assertTrue("Exception is not an " + PugIllegalArgumentException.class.getSimpleName() + ": " + actualException.getClass(),
                    actualException instanceof PugIllegalArgumentException);
