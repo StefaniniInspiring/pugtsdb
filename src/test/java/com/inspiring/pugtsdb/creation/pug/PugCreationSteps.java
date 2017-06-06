@@ -2,17 +2,18 @@ package com.inspiring.pugtsdb.creation.pug;
 
 import com.inspiring.pugtsdb.PugTSDB;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
+import cucumber.api.java.After;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.After;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+@SuppressWarnings("Duplicates")
 public class PugCreationSteps {
 
     private String actualStorage;
@@ -27,12 +28,16 @@ public class PugCreationSteps {
 
         if (actualStorage != null) {
             Path storagePath = Paths.get(actualStorage);
-            File storageDir = storagePath.getParent().toFile();
-            String filename = storagePath.getFileName().toString();
-            File[] files = storageDir.listFiles((dir, name) -> name.matches(filename + "\\..*"));
+            Path storageParent = storagePath.getParent();
 
-            for (File file : files) {
-                file.delete();
+            if (storageParent != null) {
+                File storageDir = storageParent.toFile();
+                String filename = storagePath.getFileName().toString();
+                File[] files = storageDir.listFiles((dir, name) -> name.matches(filename + "\\..*"));
+
+                for (File file : files) {
+                    file.delete();
+                }
             }
         }
     }

@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
+import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import static com.inspiring.pugtsdb.util.Strings.isBlank;
@@ -69,6 +70,10 @@ public class PugTSDB implements Closeable {
         } catch (Exception e) {
             throw new PugSQLException("Cannot create database", e);
         }
+    }
+
+    public DataSource getDataSource() {
+        return ds;
     }
 
     public void upsert(Metric<?> metric) {

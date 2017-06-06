@@ -12,17 +12,20 @@ import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import java.util.Map;
 
+import static java.util.Collections.emptyMap;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+@SuppressWarnings("Duplicates")
 public class MetricCreationSteps {
 
     private String metricType;
     private String metricName;
     private Map<String, String> metricTags;
     private Long metricTimestamp;
-    private String metricValue;
+    private Object metricValue;
     private byte[] metricBytes;
 
     private Metric<?> actualMetric;
@@ -50,32 +53,21 @@ public class MetricCreationSteps {
 
     @Given("^the value \"([^\"]*)\"$")
     public void theValue(String value) throws Throwable {
-        metricValue = value;
-    }
-
-    @Given("^the name null$")
-    public void theNameNull() throws Throwable {
-        metricName = null;
-    }
-
-    @Given("^the tags null$")
-    public void theTagsNull() throws Throwable {
-        metricTags = null;
-    }
-
-    @Given("^the timestamp null$")
-    public void theTimestampNull() throws Throwable {
-        metricTimestamp = null;
-    }
-
-    @Given("^the value null$")
-    public void theValueNull() throws Throwable {
-        metricValue = null;
-    }
-
-    @Given("^the bytes null$")
-    public void theBytesNull() throws Throwable {
-        metricBytes = null;
+        if (value != null) {
+            switch (metricType) {
+                case "Boolean":
+                    metricValue = Boolean.valueOf(value);
+                    break;
+                case "Double":
+                    metricValue = Double.valueOf(value);
+                    break;
+                case "Long":
+                    metricValue = Long.valueOf(value);
+                    break;
+                default:
+                    metricValue = value;
+            }
+        }
     }
 
     @Given("^the bytes empty$")
@@ -88,16 +80,16 @@ public class MetricCreationSteps {
         try {
             switch (metricType) {
                 case "Boolean":
-                    actualMetric = new BooleanMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : Boolean.parseBoolean(metricValue));
+                    actualMetric = new BooleanMetric(metricName, metricTags, metricTimestamp, (Boolean) metricValue);
                     break;
                 case "Double":
-                    actualMetric = new DoubleMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : Double.parseDouble(metricValue));
+                    actualMetric = new DoubleMetric(metricName, metricTags, metricTimestamp, (Double) metricValue);
                     break;
                 case "Long":
-                    actualMetric = new LongMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : Long.parseLong(metricValue));
+                    actualMetric = new LongMetric(metricName, metricTags, metricTimestamp, (Long) metricValue);
                     break;
                 default:
-                    actualMetric = new StringMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : metricValue);
+                    actualMetric = new StringMetric(metricName, metricTags, metricTimestamp, (String) metricValue);
             }
         } catch (Exception e) {
             actualException = e;
@@ -129,6 +121,36 @@ public class MetricCreationSteps {
     public void theMetricCreationIsSuccessful() throws Throwable {
         assertNull(actualException);
         assertNotNull(actualMetric);
+
+        assertNotNull(actualMetric.getId());
+        assertEquals(metricName, actualMetric.getName());
+
+        if (metricTags != null) {
+            assertEquals(metricTags, actualMetric.getTags());
+        } else {
+            assertEquals(emptyMap(), actualMetric.getTags());
+        }
+
+        if (metricTimestamp != null) {
+            assertEquals(metricTimestamp, actualMetric.getTimestamp());
+        } else {
+            assertNotNull(actualMetric.getTimestamp());
+        }
+
+        if (metricValue != null) {
+            assertEquals(metricValue, actualMetric.getValue());
+        } else if (metricBytes != null) {
+            byte[] actualBytes = actualMetric.getValueAsBytes();
+
+            assertEquals(metricBytes.length, actualBytes.length);
+
+            for (int i = 0; i < metricBytes.length; i++) {
+                assertEquals("byte[" + i + "] differ", metricBytes[i], actualBytes[i]);
+            }
+        } else {
+            assertNull(actualMetric.getValue());
+            assertNull(actualMetric.getValueAsBytes());
+        }
     }
 
     @Then("^an illegal argument exception are thrown$")
