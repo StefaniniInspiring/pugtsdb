@@ -13,6 +13,6 @@ import org.junit.runners.Suite.SuiteClasses;
         PugCreationFeature.class,
         UpsertionFeature.class
 })
-public class PugTestSuite {
+public class PugSuiteTest {
 
 }
