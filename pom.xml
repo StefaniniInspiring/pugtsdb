@@ -6,7 +6,7 @@
 
     <groupId>com.github.stefaniniinspiring</groupId>
     <artifactId>pugtsdb</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1-SNAPSHOT</version>
     <name>PugTSDB</name>
     <description>A Java Embedded Time Series Data Base</description>
     <url>https://github.com/StefaniniInspiring/pugtsdb</url>
