@@ -20,6 +20,66 @@ CREATE CACHED TABLE IF NOT EXISTS data (
   REFERENCES metric ("id")
 );
 
+CREATE CACHED TABLE IF NOT EXISTS data_1s (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT data_1s__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
+CREATE CACHED TABLE IF NOT EXISTS data_1m (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT data_1m__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
+CREATE CACHED TABLE IF NOT EXISTS data_1h (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT data_1h__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
+CREATE CACHED TABLE IF NOT EXISTS data_1d (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT data_1d__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
+CREATE CACHED TABLE IF NOT EXISTS data_1mo (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT data_1mo__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
+CREATE CACHED TABLE IF NOT EXISTS data_1y (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT data_1y__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
 CREATE CACHED TABLE IF NOT EXISTS metric_tag (
   "metric_id" INTEGER NOT NULL,
   "tag_name"  VARCHAR NOT NULL,
