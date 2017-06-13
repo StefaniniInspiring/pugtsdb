@@ -7,11 +7,19 @@ import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
 import java.time.temporal.UnsupportedTemporalTypeException;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
-
 public class Retention implements TemporalAmount {
+
+    private static final EnumSet<ChronoUnit> units = EnumSet.of(ChronoUnit.SECONDS,
+                                                                ChronoUnit.MINUTES,
+                                                                ChronoUnit.HOURS,
+                                                                ChronoUnit.DAYS,
+                                                                ChronoUnit.WEEKS,
+                                                                ChronoUnit.MONTHS,
+                                                                ChronoUnit.YEARS);
 
     private final long value;
     private final ChronoUnit unit;
@@ -67,12 +75,16 @@ public class Retention implements TemporalAmount {
             return value;
         }
 
+        if (units.contains(unit)) {
+            return 0;
+        }
+
         throw new UnsupportedTemporalTypeException("Unsupported unit: " + unit);
     }
 
     @Override
     public List<TemporalUnit> getUnits() {
-        return singletonList(unit);
+        return new ArrayList<>(units);
     }
 
     @Override

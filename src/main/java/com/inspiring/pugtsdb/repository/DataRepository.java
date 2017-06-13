@@ -11,6 +11,13 @@ import java.util.function.Supplier;
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class DataRepository extends Repository {
 
+    public static final String AGGREGATION_OF_ONE_SECOND = "1s";
+    public static final String AGGREGATION_OF_ONE_MINUTE = "1m";
+    public static final String AGGREGATION_OF_ONE_HOUR = "1h";
+    public static final String AGGREGATION_OF_ONE_DAY = "1d";
+    public static final String AGGREGATION_OF_ONE_MONTH = "1mo";
+    public static final String AGGREGATION_OF_ONE_YEAR = "1y";
+
     private static final String SQL_MERGE_DATA = ""
             + " MERGE INTO data (         "
             + "            \"metric_id\", "
@@ -23,9 +30,12 @@ public class DataRepository extends Repository {
             + " WHERE \"timestamp\" < ? ";
 
     private static final String SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP = ""
-            + " DELETE FROM data_%s     "
-            + " WHERE \"metric_id\" = ? "
-            + " AND   \"timestamp\" < ? ";
+            + " DELETE FROM data_%s      "
+            + " WHERE \"metric_id\"      "
+            + " IN (SELECT \"id\"        "
+            + "     FROM   metric        "
+            + "     WHERE  \"name\" = ?) "
+            + " AND   \"timestamp\" < ?  ";
 
     public DataRepository(Supplier<PugConnection> connectionSupplier) {
         super(connectionSupplier);
@@ -51,55 +61,15 @@ public class DataRepository extends Repository {
         }
     }
 
-    public void deleteAggregatedDataBeforeTime(String aggregationPeriod, int metricId, long time) {
+    public void deleteAggregatedDataBeforeTime(String aggregationPeriod, String metricName, long time) {
         String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, aggregationPeriod);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setInt(1, metricId);
+            statement.setString(1, metricName);
             statement.setTimestamp(2, new Timestamp(time));
             statement.execute();
         } catch (SQLException e) {
-            throw new PugSQLException("Cannot delete metric values with statement %s and ID %s", sql, metricId, e);
+            throw new PugSQLException("Cannot delete metric %s values with statement %s", metricName, sql, e);
         }
     }
-//
-//    public void deleteDataPer1SecBeforeTime(int metricId, long time) {
-//        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, "1s");
-//        deleteDataBeforeTime(sql, metricId, time);
-//    }
-//
-//    public void deleteDataPer1MinBeforeTime(int metricId, long time) {
-//        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, "1m");
-//        deleteDataBeforeTime(sql, metricId, time);
-//    }
-//
-//    public void deleteDataPer1HourBeforeTime(int metricId, long time) {
-//        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, "1h");
-//        deleteDataBeforeTime(sql, metricId, time);
-//    }
-//
-//    public void deleteDataPer1DayBeforeTime(int metricId, long time) {
-//        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, "1d");
-//        deleteDataBeforeTime(sql, metricId, time);
-//    }
-//
-//    public void deleteDataPer1MonthBeforeTime(int metricId, long time) {
-//        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, "1mo");
-//        deleteDataBeforeTime(sql, metricId, time);
-//    }
-//
-//    public void deleteDataPer1YearBeforeTime(int metricId, long time) {
-//        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, "1y");
-//        deleteDataBeforeTime(sql, metricId, time);
-//    }
-//
-//    private void deleteDataBeforeTime(String sql, int metricId, long time) {
-//        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-//            statement.setInt(1, metricId);
-//            statement.setTimestamp(2, new Timestamp(time));
-//            statement.execute();
-//        } catch (SQLException e) {
-//            throw new PugSQLException("Cannot delete metric values with statement %s and ID %s", sql, metricId, e);
-//        }
-//    }
 }

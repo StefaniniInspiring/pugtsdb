@@ -5,17 +5,17 @@ import com.inspiring.pugtsdb.rollup.Retention;
 
 public class AggregatedDataPurger extends DataPurger {
 
-    private final int metricId;
+    private final String metricName;
     private final String aggregationPeriod;
 
-    public AggregatedDataPurger(DataRepository dataRepository, Retention retention, int metricId, String aggregationPeriod) {
+    public AggregatedDataPurger(DataRepository dataRepository, Retention retention, String metricName, String aggregationPeriod) {
         super(dataRepository, retention);
-        this.metricId = metricId;
+        this.metricName = metricName;
         this.aggregationPeriod = aggregationPeriod;
     }
 
     @Override
     public void run() {
-        dataRepository.deleteAggregatedDataBeforeTime(aggregationPeriod, metricId, lastValidTime());
+        dataRepository.deleteAggregatedDataBeforeTime(aggregationPeriod, metricName, lastValidTime());
     }
 }

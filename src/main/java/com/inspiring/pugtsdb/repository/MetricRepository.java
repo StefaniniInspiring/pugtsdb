@@ -1,34 +1,34 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.bean.MetricData;
+import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
-import com.inspiring.pugtsdb.metric.Metric;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class MetricRepository extends Repository {
 
-    static final String FIELD_ID = "id";
-    static final String FIELD_NAME = "name";
-    static final String FIELD_TYPE = "type";
-
     private static final String SQL_SELECT_METRIC_BY_ID = ""
-            + " SELECT \"" + FIELD_ID + "\",    "
-            + "        \"" + FIELD_NAME + "\",  "
-            + "        \"" + FIELD_TYPE + "\"   "
+            + " SELECT \"id\",    "
+            + "        \"name\",  "
+            + "        \"type\"   "
             + " FROM   metric "
-            + " WHERE  \"" + FIELD_ID + "\" = ? ";
+            + " WHERE  \"" + "id" + "\" = ? ";
 
     private static final String SQL_INSERT_METRIC = ""
             + " INSERT INTO metric ( "
-            + "        \"" + FIELD_ID + "\",    "
-            + "        \"" + FIELD_NAME + "\",  "
-            + "        \"" + FIELD_TYPE + "\" )  "
+            + "        \"id\",    "
+            + "        \"name\",  "
+            + "        \"type\" )  "
             + " VALUES (?, ?, ?) ";
 
     private static final String SQL_INSERT_METRIC_TAG = ""
@@ -38,11 +38,26 @@ public class MetricRepository extends Repository {
             + "             \"tag_value\") "
             + " VALUES (?, ?, ?)           ";
 
+    static final String SQL_SELECT_METRIC_DATA_BY_NAME_AND_TIMESTAMP = ""
+            + " SELECT metric.\"id\",                     "
+            + "        metric.\"name\",                   "
+            + "        metric.\"type\",                   "
+            + "        data.\"timestamp\",                "
+            + "        data.\"aggregation\",              "
+            + "        data.\"value\"                     "
+            + " FROM   metric,                            "
+            + "        data_%s AS data                    "
+            + " WHERE  metric.\"name\" = ?                "
+            + " AND    metric.\"id\" = data.\"metric_id\" "
+            + " AND    data.\"timestamp\" >= ?            "
+            + " AND    data.\"timestamp\" < ?             "
+            + " GROUP BY metric.\"id\"                    ";
+
     private final TagRepository tagRepository;
 
-    public MetricRepository(Supplier<PugConnection> connectionSupplier) {
+    public MetricRepository(Supplier<PugConnection> connectionSupplier, TagRepository tagRepository) {
         super(connectionSupplier);
-        this.tagRepository = new TagRepository(connectionSupplier);
+        this.tagRepository = tagRepository;
     }
 
     public boolean notExistsMetric(Integer id) {
@@ -92,22 +107,42 @@ public class MetricRepository extends Repository {
         }
     }
 
-    private Metric<?> buildMetric(ResultSet resultSet) throws SQLException {
-        Metric<?> metric = null;
+    public List<MetricData> selectMetricDatasByNameAndTimestamp(String metricName, String aggregationPeriod, long fromTimestamp, long toTimestamp) {
+        String sql = String.format(SQL_SELECT_METRIC_DATA_BY_NAME_AND_TIMESTAMP, aggregationPeriod);
+        List<MetricData> metricDataList = new ArrayList<>();
 
-        if (resultSet.first()) {
-            try {
-                String type = resultSet.getString(FIELD_TYPE);
-                String name = resultSet.getString(FIELD_NAME);
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, metricName);
+            statement.setTimestamp(2, new Timestamp(fromTimestamp));
+            statement.setTimestamp(3, new Timestamp(toTimestamp));
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                Integer id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                String type = resultSet.getString("type");
+                Long timestamp = resultSet.getTimestamp("timestamp").getTime();
+                String aggregation = resultSet.getString("aggregation");
+                byte[] bytes = resultSet.getBytes("value");
                 Map<String, String> tags = Collections.emptyMap();//TODO select tags
-                metric = (Metric<?>) Class.forName(type)
-                        .getConstructor(String.class, Map.class)
-                        .newInstance(name, tags);
-            } catch (Exception e) {
-                e.printStackTrace();
+
+                Metric<?> metric = (Metric<?>) Class.forName(type)
+                        .getConstructor(String.class, Map.class, Long.class, byte[].class)
+                        .newInstance(name, tags, timestamp, bytes);
+                MetricData data = new MetricData();
+                data.setId(id);
+                data.setName(name);
+                data.setAggregation(aggregation);
+                data.setTags(tags);
+                data.setTimestamp(timestamp);
+                data.setValue(metric.getValue());
+
+                metricDataList.add(data);
             }
+        } catch (Exception e) {
+            throw new PugSQLException("");
         }
 
-        return metric;
+        return metricDataList;
     }
 }
