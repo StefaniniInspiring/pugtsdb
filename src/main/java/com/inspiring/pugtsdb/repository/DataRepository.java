@@ -3,7 +3,9 @@ package com.inspiring.pugtsdb.repository;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
+import com.inspiring.pugtsdb.time.Granularity;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.function.Supplier;
@@ -11,34 +13,63 @@ import java.util.function.Supplier;
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class DataRepository extends Repository {
 
-    public static final String AGGREGATION_OF_ONE_SECOND = "1s";
-    public static final String AGGREGATION_OF_ONE_MINUTE = "1m";
-    public static final String AGGREGATION_OF_ONE_HOUR = "1h";
-    public static final String AGGREGATION_OF_ONE_DAY = "1d";
-    public static final String AGGREGATION_OF_ONE_MONTH = "1mo";
-    public static final String AGGREGATION_OF_ONE_YEAR = "1y";
-
     private static final String SQL_MERGE_DATA = ""
-            + " MERGE INTO data (         "
-            + "            \"metric_id\", "
-            + "            \"timestamp\", "
-            + "            \"value\")     "
-            + " VALUES (?, ?, ?)          ";
+            + " MERGE               "
+            + " INTO data (         "
+            + "      \"metric_id\", "
+            + "      \"timestamp\", "
+            + "      \"value\")     "
+            + " VALUES (?, ?, ?)    ";
 
     private static final String SQL_DELETE_RAW_DATA_BEFORE_TIMESTAMP = ""
-            + " DELETE FROM data        "
-            + " WHERE \"timestamp\" < ? ";
+            + " DELETE                   "
+            + " FROM   data              "
+            + " WHERE  \"timestamp\" < ? ";
 
     private static final String SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP = ""
-            + " DELETE FROM data_%s      "
-            + " WHERE \"metric_id\"      "
-            + " IN (SELECT \"id\"        "
-            + "     FROM   metric        "
-            + "     WHERE  \"name\" = ?) "
-            + " AND   \"timestamp\" < ?  ";
+            + " DELETE                       "
+            + " FROM   data_%s               "
+            + " WHERE  \"metric_id\"         "
+            + " IN     (SELECT \"id\"        "
+            + "         FROM   metric        "
+            + "         WHERE  \"name\" = ?) "
+            + " AND   \"aggregation\" = ?    "
+            + " AND   \"timestamp\" < ?      ";
+
+    static final String SQL_SELECT_MAX_AGGREGATED_DATA_TIMESTAMP = ""
+            + " SELECT MAX(\"timestamp\") AS max "
+            + " FROM   data_%s                   "
+            + " WHERE  \"metric_id\"             "
+            + " IN     (SELECT \"id\"            "
+            + "         FROM   metric            "
+            + "         WHERE  \"name\" = ?)     "
+            + " AND    \"aggregation\" = ?       ";
 
     public DataRepository(Supplier<PugConnection> connectionSupplier) {
         super(connectionSupplier);
+    }
+
+    public Long selectMaxAggregatedDataTimestamp(String metricName, String aggregation, Granularity granularity) {
+        String sql = String.format(SQL_SELECT_MAX_AGGREGATED_DATA_TIMESTAMP, granularity);
+        Long max = null;
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, metricName);
+            statement.setString(2, aggregation);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                max = resultSet.getLong("max");
+            }
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot select max timestamp of metric %s aggregated as %s with granulairty %s and statment %s",
+                                      metricName,
+                                      aggregation,
+                                      granularity,
+                                      sql);
+        }
+
+        return max;
     }
 
     public void upsertMetricValue(Metric<?> metric) {
@@ -61,15 +92,21 @@ public class DataRepository extends Repository {
         }
     }
 
-    public void deleteAggregatedDataBeforeTime(String aggregationPeriod, String metricName, long time) {
-        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, aggregationPeriod);
+    public void deleteAggregatedDataBeforeTime(String metricName, String aggregation, Granularity granularity, long time) {
+        String sql = String.format(SQL_DELETE_AGGREGATED_DATA_BEFORE_TIMESTAMP, granularity);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, metricName);
-            statement.setTimestamp(2, new Timestamp(time));
+            statement.setString(2, aggregation);
+            statement.setTimestamp(3, new Timestamp(time));
             statement.execute();
         } catch (SQLException e) {
-            throw new PugSQLException("Cannot delete metric %s values with statement %s", metricName, sql, e);
+            throw new PugSQLException("Cannot delete metric %s values aggregated as %s with granularity %s and statement %s",
+                                      metricName,
+                                      aggregation,
+                                      granularity,
+                                      sql,
+                                      e);
         }
     }
 }

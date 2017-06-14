@@ -1,10 +1,9 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
-public class DoubleSumAggregation implements Aggregation<Double> {
+public class DoubleSumAggregation extends Aggregation<Double> {
 
-    @Override
-    public String getName() {
-        return "sum";
+    protected DoubleSumAggregation(String name) {
+        super("sum");
     }
 
     @Override

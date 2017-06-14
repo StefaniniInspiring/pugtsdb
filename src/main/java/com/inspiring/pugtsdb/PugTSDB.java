@@ -6,7 +6,7 @@ import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.DataRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
-import com.inspiring.pugtsdb.rollup.Retention;
+import com.inspiring.pugtsdb.time.Retention;
 import com.inspiring.pugtsdb.rollup.RollUpManager;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.sql.PugConnection;
@@ -107,7 +107,7 @@ public class PugTSDB implements Closeable {
         }
     }
 
-    public void registerRollUp(String metricName, Aggregation<?> aggregation, Retention retention) {
+    public void registerRollUp(String metricName, Aggregation<Object> aggregation, Retention retention) {
         rollUpManager.registerRollUp(metricName, aggregation, retention);
     }
 

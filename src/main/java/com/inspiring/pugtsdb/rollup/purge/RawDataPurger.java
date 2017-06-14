@@ -1,7 +1,7 @@
 package com.inspiring.pugtsdb.rollup.purge;
 
 import com.inspiring.pugtsdb.repository.DataRepository;
-import com.inspiring.pugtsdb.rollup.Retention;
+import com.inspiring.pugtsdb.time.Retention;
 import java.time.temporal.ChronoUnit;
 
 public class RawDataPurger extends DataPurger {
