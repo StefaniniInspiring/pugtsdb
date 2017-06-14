@@ -38,9 +38,9 @@ public class RollUpManager {
         List<RollUp> rollUps = Stream.of(Granularity.values())
                 .map(granularity -> new RollUp(metricName, aggregation, granularity, retention, repositories))
                 .collect(toList());
+        rollUpsByGlob.put(glob, rollUps);
 
         if (isGlob(metricName)) {
-            rollUpsByGlob.put(glob, rollUps);
             scheduledRollUps.values().stream().flatMap(List::stream).forEach(scheduled -> scheduled.cancel(false));
             scheduledRollUps.clear();
 
