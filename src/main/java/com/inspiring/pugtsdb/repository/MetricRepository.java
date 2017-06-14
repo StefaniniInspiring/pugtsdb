@@ -8,6 +8,7 @@ import com.inspiring.pugtsdb.time.Granularity;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +26,10 @@ public class MetricRepository extends Repository {
             + "        \"type\"   "
             + " FROM   metric "
             + " WHERE  \"" + "id" + "\" = ? ";
+
+    private static final String SQL_SELECT_DISTINCT_METRIC_NAMES = ""
+            + " SELECT DISTINCT \"name\" "
+            + " FROM   metric            ";
 
     private static final String SQL_INSERT_METRIC = ""
             + " INSERT INTO metric ( "
@@ -75,6 +80,22 @@ public class MetricRepository extends Repository {
         } catch (SQLException e) {
             throw new PugSQLException("Cannot check metric %s existence with query %s", id, SQL_SELECT_METRIC_BY_ID, e);
         }
+    }
+
+    public List<String> selectMetricNames() {
+        List<String> names = new ArrayList<>();
+
+        try (Statement statement = getConnection().createStatement()) {
+            ResultSet resultSet = statement.executeQuery(SQL_SELECT_DISTINCT_METRIC_NAMES);
+
+            while (resultSet.next()) {
+                names.add(resultSet.getString("name"));
+            }
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot select metric names with statement %s", SQL_SELECT_DISTINCT_METRIC_NAMES, e);
+        }
+
+        return names;
     }
 
     public void insertMetric(Metric<?> metric) {
