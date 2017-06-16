@@ -1,4 +1,4 @@
-package com.inspiring.pugtsdb.creation.pug;
+package com.inspiring.pugtsdb.creation;
 
 import com.inspiring.pugtsdb.PugTSDB;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;

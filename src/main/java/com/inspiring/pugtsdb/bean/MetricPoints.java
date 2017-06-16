@@ -1,43 +1,42 @@
 package com.inspiring.pugtsdb.bean;
 
+import com.inspiring.pugtsdb.metric.Metric;
 import java.util.Map;
+import java.util.TreeMap;
 
-public class MetricPoints {
+import static java.util.Comparator.naturalOrder;
+import static java.util.Comparator.nullsFirst;
 
-    private Integer id;
-    private String name;
-    private Map<String, String> tags;
-    private Map<String, Map<Long, Object>> values;
+public class MetricPoints<T> {
 
-    public Integer getId() {
-        return id;
+    private final Metric<T> metric;
+    private final Map<String, Map<Long, T>> values = new TreeMap<>(nullsFirst(naturalOrder()));
+
+    public MetricPoints(Metric<T> metric) {
+        this.metric = metric;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public Metric<T> getMetric() {
+        return metric;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Map<String, String> getTags() {
-        return tags;
-    }
-
-    public void setTags(Map<String, String> tags) {
-        this.tags = tags;
-    }
-
-    public Map<String, Map<Long, Object>> getValues() {
+    public Map<String, Map<Long, T>> getValues() {
         return values;
     }
 
-    public void setValues(Map<String, Map<Long, Object>> values) {
-        this.values = values;
+    public void put(String aggregation, long timestamp, byte[] bytes) {
+        put(aggregation, timestamp, metric.fromBytes(bytes));
+    }
+
+    public void put(String aggregation, long timestamp, T value) {
+        values.computeIfAbsent(aggregation, s -> new TreeMap<>()).put(timestamp, value);
+    }
+
+    @Override
+    public String toString() {
+        return "MetricPoints{" +
+                "metric=" + metric +
+                ", values=" + values +
+                '}';
     }
 }

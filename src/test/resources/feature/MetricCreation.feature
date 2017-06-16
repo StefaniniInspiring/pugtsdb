@@ -361,6 +361,7 @@ Feature: Metrics instantiation tests
     When the metric is created with bytes
     Then the metric creation is successful
 
+    @bug
   Scenario: Create a String metric with empty bytes
     Given the type "String"
     And the name "string.metric"

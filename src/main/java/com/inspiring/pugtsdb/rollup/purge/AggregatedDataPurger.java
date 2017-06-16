@@ -12,7 +12,7 @@ public class AggregatedDataPurger extends DataPurger {
     private final String aggregation;
 
     public AggregatedDataPurger(String metricName,
-                                Aggregation<Object> aggregation,
+                                Aggregation<?> aggregation,
                                 Granularity granularity,
                                 Retention retention,
                                 DataRepository dataRepository) {

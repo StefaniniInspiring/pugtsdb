@@ -5,16 +5,17 @@ import java.util.Map;
 
 public class BooleanMetric extends Metric<Boolean> {
 
-    public BooleanMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
-        this(name, tags, timestamp, Bytes.toBoolean(value));
-    }
-
-    public BooleanMetric(String name, Map<String, String> tags, Long timestamp, Boolean value) {
-        super(name, tags, timestamp, value);
+    public BooleanMetric(String name, Map<String, String> tags) {
+        super(name, tags);
     }
 
     @Override
-    public byte[] getValueAsBytes() {
+    public byte[] toBytes(Boolean value) {
         return Bytes.fromBoolean(value);
+    }
+
+    @Override
+    public Boolean fromBytes(byte[] bytes) {
+        return Bytes.toBoolean(bytes);
     }
 }

@@ -14,11 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.function.Supplier;
-
-import static java.util.Comparator.naturalOrder;
-import static java.util.Comparator.nullsFirst;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class MetricRepository extends Repository {
@@ -148,7 +144,7 @@ public class MetricRepository extends Repository {
         }
     }
 
-    public List<MetricPoints> selectRawMetricPointsByNameBetweenTimestamp(String metricName, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
+    public <T> List<MetricPoints<T>> selectRawMetricPointsByNameBetweenTimestamp(String metricName, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP)) {
             statement.setString(1, metricName);
             statement.setTimestamp(2, new Timestamp(fromInclusiveTimestamp));
@@ -166,7 +162,7 @@ public class MetricRepository extends Repository {
         }
     }
 
-    public List<MetricPoints> selectMetricPointsByNameAndAggregationBetweenTimestamp(String metricName,
+    public <T> List<MetricPoints<T>> selectMetricPointsByNameAndAggregationBetweenTimestamp(String metricName,
                                                                                      String aggregation,
                                                                                      Granularity granularity,
                                                                                      long fromInclusiveTimestamp,
@@ -193,8 +189,9 @@ public class MetricRepository extends Repository {
         }
     }
 
-    private List<MetricPoints> buildMetricPoints(ResultSet resultSet) throws SQLException, InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        List<MetricPoints> allPoints = new ArrayList<>();
+    @SuppressWarnings("unchecked")
+    private <T> List<MetricPoints<T>> buildMetricPoints(ResultSet resultSet) throws SQLException, InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
+        List<MetricPoints<T>> allPoints = new ArrayList<>();
         MetricPoints points = null;
         String aggregation;
 
@@ -212,22 +209,15 @@ public class MetricRepository extends Repository {
                 aggregation = null;
             }
 
-            Metric<?> metric = (Metric<?>) Class.forName(type)
-                    .getConstructor(String.class, Map.class, Long.class, byte[].class)
-                    .newInstance(name, tags, timestamp, bytes);
-
-            if (points == null || !id.equals(points.getId())) {
-                points = new MetricPoints();
-                points.setId(id);
-                points.setName(name);
-                points.setTags(tags);
-                points.setValues(new TreeMap<>(nullsFirst(naturalOrder())));
+            if (points == null || !id.equals(points.getMetric().getId())) {
+                Metric<T> metric = (Metric<T>) Class.forName(type)
+                        .getConstructor(String.class, Map.class)
+                        .newInstance(name, tags);
+                points = new MetricPoints(metric);
                 allPoints.add(points);
             }
 
-            points.getValues()
-                    .computeIfAbsent(aggregation, key -> new TreeMap<>())
-                    .put(timestamp, metric.getValue());
+            points.put(aggregation, timestamp, bytes);
         }
 
         return allPoints;

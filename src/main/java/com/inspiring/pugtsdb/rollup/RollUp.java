@@ -16,10 +16,10 @@ import static java.lang.System.currentTimeMillis;
 import static java.time.ZoneId.systemDefault;
 import static java.util.stream.Collectors.toMap;
 
-public class RollUp implements Runnable {
+public class RollUp<T> implements Runnable {
 
     private final String metricName;
-    private final Aggregation<Object> aggregation;
+    private final Aggregation<T> aggregation;
     private final Granularity sourceGranularity;
     private final Granularity targetGranularity;
     private final Repositories repositories;
@@ -28,7 +28,7 @@ public class RollUp implements Runnable {
     private Long lastTimestamp = null;
 
     public RollUp(String metricName,
-                  Aggregation<Object> aggregation,
+                  Aggregation<T> aggregation,
                   Granularity sourceGranularity, Granularity targetGranularity,
                   Retention retention,
                   Repositories repositories) {
@@ -58,15 +58,15 @@ public class RollUp implements Runnable {
     @Override
     public void run() {
         long nextTimestamp = truncateTimestamp(currentTimeMillis());
-        List<MetricPoints> metricPoints;
+        List<MetricPoints<T>> pointsList;
         String sourceAggregation;
         boolean isSourceRawData = sourceGranularity == null;
 
         if (isSourceRawData) {
-            metricPoints = repositories.getMetricRepository().selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
+            pointsList = repositories.getMetricRepository().selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
             sourceAggregation = null;
         } else {
-            metricPoints = repositories.getMetricRepository().selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
+            pointsList = repositories.getMetricRepository().selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
                                                                                                                      aggregation.getName(),
                                                                                                                      sourceGranularity,
                                                                                                                      lastTimestamp,
@@ -74,7 +74,7 @@ public class RollUp implements Runnable {
             sourceAggregation = aggregation.getName();
         }
 
-        for (MetricPoints points : metricPoints) {
+        for (MetricPoints<T> points : pointsList) {
             points.getValues()
                     .computeIfPresent(sourceAggregation, (key, values) -> values.entrySet()
                             .stream()
@@ -85,8 +85,8 @@ public class RollUp implements Runnable {
         }
 
         if (isSourceRawData) {
-            for (MetricPoints points : metricPoints) {
-                Map<Long, Object> values = points.getValues().remove(sourceAggregation);
+            for (MetricPoints<T> points : pointsList) {
+                Map<Long, T> values = points.getValues().remove(sourceAggregation);
 
                 if (isNotEmpty(values)) {
                     points.getValues().put(aggregation.getName(), values);

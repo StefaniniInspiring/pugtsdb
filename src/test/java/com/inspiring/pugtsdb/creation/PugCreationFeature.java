@@ -1,4 +1,4 @@
-package com.inspiring.pugtsdb.creation.pug;
+package com.inspiring.pugtsdb.creation;
 
 import cucumber.api.CucumberOptions;
 import cucumber.api.junit.Cucumber;

@@ -5,16 +5,17 @@ import java.util.Map;
 
 public class LongMetric extends Metric<Long> {
 
-    public LongMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
-        this(name, tags, timestamp, Bytes.toLong(value));
-    }
-
-    public LongMetric(String name, Map<String, String> tags, Long timestamp, Long value) {
-        super(name, tags, timestamp, value);
+    public LongMetric(String name, Map<String, String> tags) {
+        super(name, tags);
     }
 
     @Override
-    public byte[] getValueAsBytes() {
+    public byte[] toBytes(Long value) {
         return Bytes.fromLong(value);
+    }
+
+    @Override
+    public Long fromBytes(byte[] bytes) {
+        return Bytes.toLong(bytes);
     }
 }

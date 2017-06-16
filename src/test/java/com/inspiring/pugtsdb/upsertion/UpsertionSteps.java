@@ -1,6 +1,7 @@
 package com.inspiring.pugtsdb.upsertion;
 
 import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.bean.Point;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.metric.BooleanMetric;
 import com.inspiring.pugtsdb.metric.DoubleMetric;
@@ -28,7 +29,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("Duplicates")
-public class UpsertionSteps {
+public class UpsertionSteps<T> {
 
     private String metricType;
     private String metricName;
@@ -38,7 +39,8 @@ public class UpsertionSteps {
 
     private Exception actualException;
 
-    private Metric<?> metric;
+    private Metric<T> metric;
+    private Point<Object> point;
     private String storage = "/tmp/pugtest";
     private PugTSDB pugTSDB;
 
@@ -95,16 +97,20 @@ public class UpsertionSteps {
         try {
             switch (metricType) {
                 case "Boolean":
-                    metric = new BooleanMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : Boolean.parseBoolean(metricValue));
+                    metric = (Metric<T>) new BooleanMetric(metricName, metricTags);
+                    point = Point.of(metricTimestamp, metricValue == null ? null : Boolean.parseBoolean(metricValue));
                     break;
                 case "Double":
-                    metric = new DoubleMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : Double.parseDouble(metricValue));
+                    metric = (Metric<T>) new DoubleMetric(metricName, metricTags);
+                    point = Point.of(metricTimestamp, metricValue == null ? null : Double.parseDouble(metricValue));
                     break;
                 case "Long":
-                    metric = new LongMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : Long.parseLong(metricValue));
+                    metric = (Metric<T>) new LongMetric(metricName, metricTags);
+                    point = Point.of(metricTimestamp, metricValue == null ? null : Long.parseLong(metricValue));
                     break;
                 default:
-                    metric = new StringMetric(metricName, metricTags, metricTimestamp, metricValue == null ? null : metricValue);
+                    metric = (Metric<T>) new StringMetric(metricName, metricTags);
+                    point = Point.of(metricTimestamp, metricValue == null ? null : metricValue);
             }
         } catch (Exception e) {
             actualException = e;
@@ -114,7 +120,7 @@ public class UpsertionSteps {
     @When("^the metric is inserted$")
     public void theMetricIsInserted() throws Throwable {
         try {
-            pugTSDB.upsert(metric);
+            pugTSDB.upsert(metric, (Point<T>) point);
         } catch (Exception e) {
             actualException = e;
         }
@@ -177,9 +183,9 @@ public class UpsertionSteps {
 
             assertTrue(resultSet.next());
             assertEquals(metric.getId(), (Integer) resultSet.getInt("metric_id"));
-            assertEquals(metric.getTimestamp(), (Long) resultSet.getTimestamp("timestamp").getTime());
+            assertEquals(point.getTimestamp(), resultSet.getTimestamp("timestamp").getTime());
 
-            byte[] expectedBytes = metric.getValueAsBytes();
+            byte[] expectedBytes = metric.toBytes((T) point.getValue());
             byte[] actualBytes = resultSet.getBytes("value");
 
             if (expectedBytes == null) {

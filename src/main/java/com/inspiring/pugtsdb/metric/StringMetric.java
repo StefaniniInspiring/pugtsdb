@@ -5,16 +5,17 @@ import java.util.Map;
 
 public class StringMetric extends Metric<String> {
 
-    public StringMetric(String name, Map<String, String> tags, Long timestamp, byte[] value) {
-        this(name, tags, timestamp, Bytes.toUtf8String(value));
-    }
-
-    public StringMetric(String name, Map<String, String> tags, Long timestamp, String value) {
-        super(name, tags, timestamp, value);
+    public StringMetric(String name, Map<String, String> tags) {
+        super(name, tags);
     }
 
     @Override
-    public byte[] getValueAsBytes() {
+    public byte[] toBytes(String value) {
         return Bytes.fromUtf8String(value);
+    }
+
+    @Override
+    public String fromBytes(byte[] bytes) {
+        return Bytes.toUtf8String(bytes);
     }
 }

@@ -1,6 +1,7 @@
 package com.inspiring.pugtsdb.repository;
 
 import com.inspiring.pugtsdb.bean.MetricPoints;
+import com.inspiring.pugtsdb.bean.Point;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
@@ -82,31 +83,33 @@ public class DataRepository extends Repository {
         return max;
     }
 
-    public void upsertMetricValue(Metric<?> metric) {
+    public <T> void upsertMetricPoint(Metric<T> metric, Point<T> point) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_MERGE_DATA)) {
             statement.setInt(1, metric.getId());
-            statement.setTimestamp(2, new Timestamp(metric.getTimestamp()));
-            statement.setBytes(3, metric.getValueAsBytes());
+            statement.setTimestamp(2, new Timestamp(point.getTimestamp()));
+            statement.setBytes(3, metric.toBytes(point.getValue()));
             statement.execute();
         } catch (SQLException e) {
             throw new PugSQLException("Cannot upsert metric %s value with statement %s", metric, SQL_MERGE_DATA, e);
         }
     }
 
-    public void upsertMetricPoints(MetricPoints metricPoints, Granularity granularity) {
+    public <T> void upsertMetricPoints(MetricPoints<T> metricPoints, Granularity granularity) {
         String sql = String.format(SQL_MERGE_DATA_POINT, granularity);
+        Metric<T> metric = metricPoints.getMetric();
+
         metricPoints.getValues()
                 .forEach((aggregation, point) -> point
                         .forEach((timestamp, value) -> {
                             try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-                                statement.setInt(1, metricPoints.getId());
+                                statement.setInt(1, metric.getId());
                                 statement.setTimestamp(2, new Timestamp(timestamp));
                                 statement.setString(3, aggregation);
-                                statement.setBytes(4, ?);
+                                statement.setBytes(4, metric.toBytes(value));
                                 statement.execute();
                             } catch (SQLException e) {
                                 throw new PugSQLException("Cannot upsert metric %s point at timestamp %s and value %s aggregated as %s with statement %s",
-                                                          metricPoints.getName(),
+                                                          metric.getName(),
                                                           timestamp,
                                                           value,
                                                           aggregation,

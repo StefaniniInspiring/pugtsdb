@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb;
 
+import com.inspiring.pugtsdb.bean.Point;
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.metric.Metric;
@@ -83,9 +84,13 @@ public class PugTSDB implements Closeable {
         return ds;
     }
 
-    public void upsert(Metric<?> metric) {
+    public <T> void upsert(Metric<T> metric, Point<T> point) {
         if (metric == null) {
             throw new PugIllegalArgumentException("Cannot upsert a null metric");
+        }
+
+        if (point == null) {
+            throw new PugIllegalArgumentException("Cannot upsert a null metric point");
         }
 
         MetricRepository metricRepository = repositories.getMetricRepository();
@@ -96,7 +101,7 @@ public class PugTSDB implements Closeable {
                 metricRepository.insertMetric(metric);
             }
 
-            dataRepository.upsertMetricValue(metric);
+            dataRepository.upsertMetricPoint(metric, point);
 
             getConnection().commit();
         } catch (PugException e) {
