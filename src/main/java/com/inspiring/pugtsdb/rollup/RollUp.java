@@ -1,6 +1,7 @@
 package com.inspiring.pugtsdb.rollup;
 
 import com.inspiring.pugtsdb.bean.MetricPoints;
+import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.purge.AggregatedDataPurger;
@@ -58,52 +59,72 @@ public class RollUp<T> implements Runnable {
     @Override
     public void run() {
         long nextTimestamp = truncateTimestamp(currentTimeMillis());
-        List<MetricPoints<T>> pointsList;
-        String sourceAggregation;
-        boolean isSourceRawData = sourceGranularity == null;
 
-        if (isSourceRawData) {
-            pointsList = repositories.getMetricRepository().selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
-            sourceAggregation = null;
-        } else {
-            pointsList = repositories.getMetricRepository().selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
-                                                                                                                     aggregation.getName(),
-                                                                                                                     sourceGranularity,
-                                                                                                                     lastTimestamp,
-                                                                                                                     nextTimestamp);
-            sourceAggregation = aggregation.getName();
-        }
-
-        for (MetricPoints<T> points : pointsList) {
-            points.getValues()
-                    .computeIfPresent(sourceAggregation, (key, values) -> values.entrySet()
-                            .stream()
-                            .collect(toMap(point -> truncateTimestamp(point.getKey()),
-                                           point -> point.getValue(),
-                                           (value1, value2) -> aggregation.aggregate(value1, value2),
-                                           TreeMap::new)));
-        }
-
-        if (isSourceRawData) {
-            for (MetricPoints<T> points : pointsList) {
-                Map<Long, T> values = points.getValues().remove(sourceAggregation);
-
-                if (isNotEmpty(values)) {
-                    points.getValues().put(aggregation.getName(), values);
-                }
-            }
-        }
-
-        //TODO insert points
+        Data data = fetchSourceData(nextTimestamp);
+        aggregateData(data);
+        saveData(data);
 
         lastTimestamp = nextTimestamp;
 
         purger.run();
     }
 
+    private Data fetchSourceData(long nextTimestamp) {
+        Data data = new Data();
+        MetricRepository metricRepository = repositories.getMetricRepository();
+
+        if (data.isRaw()) {
+            data.pointsList = metricRepository.selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
+            data.sourceAggregation = null;
+        } else {
+            data.pointsList = metricRepository.selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
+                                                                                                      aggregation.getName(),
+                                                                                                      sourceGranularity,
+                                                                                                      lastTimestamp,
+                                                                                                      nextTimestamp);
+            data.sourceAggregation = aggregation.getName();
+        }
+
+        return data;
+    }
+
+    private void aggregateData(Data data) {
+        for (MetricPoints<T> points : data.pointsList) {
+            points.getValues()
+                    .computeIfPresent(data.sourceAggregation, (key, values) -> values.entrySet()
+                            .stream()
+                            .collect(toMap(point -> truncateTimestamp(point.getKey()),
+                                           point -> point.getValue(),
+                                           (value1, value2) -> aggregation.aggregate(value1, value2),
+                                           TreeMap::new)));
+
+            if (data.isRaw()) {
+                Map<Long, T> values = points.getValues().remove(null);
+
+                if (isNotEmpty(values)) {
+                    points.getValues().put(aggregation.getName(), values);
+                }
+            }
+        }
+    }
+
+    private void saveData(Data data) {
+        data.pointsList.forEach(points -> repositories.getDataRepository().upsertMetricPoints(points, targetGranularity));
+    }
+
     private long truncateTimestamp(long timestamp) {
         return Instant.ofEpochMilli(timestamp)
                 .truncatedTo(targetGranularity.getUnit())
                 .toEpochMilli();
+    }
+
+    private class Data {
+
+        List<MetricPoints<T>> pointsList;
+        String sourceAggregation;
+
+        boolean isRaw() {
+            return sourceGranularity == null;
+        }
     }
 }

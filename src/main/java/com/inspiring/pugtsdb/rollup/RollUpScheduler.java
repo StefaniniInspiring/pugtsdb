@@ -80,7 +80,7 @@ public class RollUpScheduler {
 
         return rollUpsByGlob.compute(GlobPattern.compile(metricName),
                                      (pattern, rollUps) -> Stream.of(Granularity.values())
-                                             .map(targetGranularity -> new RollUp(metricName,
+                                             .map(targetGranularity -> new RollUp<>(metricName,
                                                                                   aggregation,
                                                                                   sourceGranularity.getAndSet(targetGranularity),
                                                                                   targetGranularity,
