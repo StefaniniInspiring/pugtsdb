@@ -7,7 +7,7 @@ import com.inspiring.pugtsdb.repository.DataRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.time.Retention;
-import com.inspiring.pugtsdb.rollup.RollUpManager;
+import com.inspiring.pugtsdb.rollup.RollUpScheduler;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
@@ -28,7 +28,7 @@ public class PugTSDB implements Closeable {
     private final JdbcConnectionPool ds;
     private final ThreadLocal<PugConnection> currentConnection;
     private final Repositories repositories;
-    private final RollUpManager rollUpManager;
+    private final RollUpScheduler rollUpScheduler;
 
     public PugTSDB(String storagePath, String username, String password) {
         if (isBlank(storagePath)) {
@@ -54,7 +54,7 @@ public class PugTSDB implements Closeable {
         });
 
         repositories = new Repositories(this::getConnection);
-        rollUpManager = new RollUpManager(repositories);
+        rollUpScheduler = new RollUpScheduler(repositories);
     }
 
     private JdbcConnectionPool initDatabase(String storagePath, String username, String password) {
@@ -108,12 +108,13 @@ public class PugTSDB implements Closeable {
     }
 
     public void registerRollUp(String metricName, Aggregation<Object> aggregation, Retention retention) {
-        rollUpManager.registerRollUp(metricName, aggregation, retention);
+        rollUpScheduler.registerRollUp(metricName, aggregation, retention);
     }
 
     @Override
     public void close() {
         ds.dispose();
+        rollUpScheduler.stop();
     }
 
     private PugConnection getConnection() {

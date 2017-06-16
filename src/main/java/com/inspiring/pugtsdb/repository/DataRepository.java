@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.repository;
 
+import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
@@ -20,6 +21,15 @@ public class DataRepository extends Repository {
             + "      \"timestamp\", "
             + "      \"value\")     "
             + " VALUES (?, ?, ?)    ";
+
+    private static final String SQL_MERGE_DATA_POINT = ""
+            + " MERGE                 "
+            + " INTO data_%s (        "
+            + "      \"metric_id\",   "
+            + "      \"timestamp\",   "
+            + "      \"aggregation\", "
+            + "      \"value\")       "
+            + " VALUES (?, ?, ?, ?)   ";
 
     private static final String SQL_DELETE_RAW_DATA_BEFORE_TIMESTAMP = ""
             + " DELETE                   "
@@ -81,6 +91,29 @@ public class DataRepository extends Repository {
         } catch (SQLException e) {
             throw new PugSQLException("Cannot upsert metric %s value with statement %s", metric, SQL_MERGE_DATA, e);
         }
+    }
+
+    public void upsertMetricPoints(MetricPoints metricPoints, Granularity granularity) {
+        String sql = String.format(SQL_MERGE_DATA_POINT, granularity);
+        metricPoints.getValues()
+                .forEach((aggregation, point) -> point
+                        .forEach((timestamp, value) -> {
+                            try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+                                statement.setInt(1, metricPoints.getId());
+                                statement.setTimestamp(2, new Timestamp(timestamp));
+                                statement.setString(3, aggregation);
+                                statement.setBytes(4, ?);
+                                statement.execute();
+                            } catch (SQLException e) {
+                                throw new PugSQLException("Cannot upsert metric %s point at timestamp %s and value %s aggregated as %s with statement %s",
+                                                          metricPoints.getName(),
+                                                          timestamp,
+                                                          value,
+                                                          aggregation,
+                                                          sql,
+                                                          e);
+                            }
+                        }));
     }
 
     public void deleteRawDataBeforeTime(long time) {
