@@ -185,7 +185,7 @@ public class UpsertionSteps<T> {
             assertEquals(metric.getId(), (Integer) resultSet.getInt("metric_id"));
             assertEquals(point.getTimestamp(), resultSet.getTimestamp("timestamp").getTime());
 
-            byte[] expectedBytes = metric.toBytes((T) point.getValue());
+            byte[] expectedBytes = metric.valueToBytes((T) point.getValue());
             byte[] actualBytes = resultSet.getBytes("value");
 
             if (expectedBytes == null) {

@@ -38,9 +38,9 @@ public abstract class Metric<T> {
         return tags;
     }
 
-    public abstract byte[] toBytes(T value);
+    public abstract byte[] valueToBytes(T value);
 
-    public abstract T fromBytes(byte[] bytes);
+    public abstract T valueFromBytes(byte[] bytes);
 
     @Override
     public String toString() {

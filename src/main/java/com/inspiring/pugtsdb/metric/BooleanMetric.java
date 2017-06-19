@@ -10,12 +10,12 @@ public class BooleanMetric extends Metric<Boolean> {
     }
 
     @Override
-    public byte[] toBytes(Boolean value) {
+    public byte[] valueToBytes(Boolean value) {
         return Bytes.fromBoolean(value);
     }
 
     @Override
-    public Boolean fromBytes(byte[] bytes) {
+    public Boolean valueFromBytes(byte[] bytes) {
         return Bytes.toBoolean(bytes);
     }
 }

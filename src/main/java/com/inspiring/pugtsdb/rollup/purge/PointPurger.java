@@ -1,16 +1,16 @@
 package com.inspiring.pugtsdb.rollup.purge;
 
-import com.inspiring.pugtsdb.repository.DataRepository;
+import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.time.Retention;
 import java.time.ZonedDateTime;
 
-public abstract class DataPurger implements Runnable {
+public abstract class PointPurger implements Runnable {
 
-    protected final DataRepository dataRepository;
+    protected final PointRepository pointRepository;
     protected final Retention retention;
 
-    public DataPurger(DataRepository dataRepository, Retention retention) {
-        this.dataRepository = dataRepository;
+    public PointPurger(PointRepository pointRepository, Retention retention) {
+        this.pointRepository = pointRepository;
         this.retention = retention;
     }
 

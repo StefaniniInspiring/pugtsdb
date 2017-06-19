@@ -4,7 +4,7 @@ import com.inspiring.pugtsdb.bean.Point;
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.metric.Metric;
-import com.inspiring.pugtsdb.repository.DataRepository;
+import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.time.Retention;
@@ -94,14 +94,14 @@ public class PugTSDB implements Closeable {
         }
 
         MetricRepository metricRepository = repositories.getMetricRepository();
-        DataRepository dataRepository = repositories.getDataRepository();
+        PointRepository pointRepository = repositories.getPointRepository();
 
         try {
             if (metricRepository.notExistsMetric(metric.getId())) {
                 metricRepository.insertMetric(metric);
             }
 
-            dataRepository.upsertMetricPoint(metric, point);
+            pointRepository.upsertMetricPoint(metric, point);
 
             getConnection().commit();
         } catch (PugException e) {

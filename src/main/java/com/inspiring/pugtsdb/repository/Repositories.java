@@ -6,12 +6,12 @@ import java.util.function.Supplier;
 public class Repositories {
 
     private final MetricRepository metricRepository;
-    private final DataRepository dataRepository;
+    private final PointRepository pointRepository;
     private final TagRepository tagRepository;
 
     public Repositories(Supplier<PugConnection> connectionSupplier) {
         this.tagRepository = new TagRepository(connectionSupplier);
-        this.dataRepository = new DataRepository(connectionSupplier);
+        this.pointRepository = new PointRepository(connectionSupplier);
         this.metricRepository = new MetricRepository(connectionSupplier, tagRepository);
     }
 
@@ -19,8 +19,8 @@ public class Repositories {
         return metricRepository;
     }
 
-    public DataRepository getDataRepository() {
-        return dataRepository;
+    public PointRepository getPointRepository() {
+        return pointRepository;
     }
 
     public TagRepository getTagRepository() {

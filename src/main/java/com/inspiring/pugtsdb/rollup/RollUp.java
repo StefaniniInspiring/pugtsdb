@@ -4,7 +4,7 @@ import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
-import com.inspiring.pugtsdb.rollup.purge.AggregatedDataPurger;
+import com.inspiring.pugtsdb.rollup.purge.AggregatedPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
 import java.time.Instant;
@@ -24,7 +24,7 @@ public class RollUp<T> implements Runnable {
     private final Granularity sourceGranularity;
     private final Granularity targetGranularity;
     private final Repositories repositories;
-    private final AggregatedDataPurger purger;
+    private final AggregatedPointPurger purger;
 
     private Long lastTimestamp = null;
 
@@ -38,9 +38,9 @@ public class RollUp<T> implements Runnable {
         this.sourceGranularity = sourceGranularity;
         this.targetGranularity = targetGranularity;
         this.repositories = repositories;
-        this.purger = new AggregatedDataPurger(metricName, aggregation, targetGranularity, retention, repositories.getDataRepository());
+        this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, repositories.getPointRepository());
 
-        lastTimestamp = repositories.getDataRepository().selectMaxAggregatedDataTimestamp(metricName, aggregation.getName(), targetGranularity);
+        lastTimestamp = repositories.getPointRepository().selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
         if (lastTimestamp == null) {
             lastTimestamp = 0L;
@@ -109,7 +109,7 @@ public class RollUp<T> implements Runnable {
     }
 
     private void saveData(Data data) {
-        data.pointsList.forEach(points -> repositories.getDataRepository().upsertMetricPoints(points, targetGranularity));
+        data.pointsList.forEach(points -> repositories.getPointRepository().upsertMetricPoints(points, targetGranularity));
     }
 
     private long truncateTimestamp(long timestamp) {

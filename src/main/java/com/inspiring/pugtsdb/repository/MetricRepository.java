@@ -1,19 +1,14 @@
 package com.inspiring.pugtsdb.repository;
 
-import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
-import com.inspiring.pugtsdb.time.Granularity;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
@@ -43,36 +38,6 @@ public class MetricRepository extends Repository {
             + "             \"tag_name\",  "
             + "             \"tag_value\") "
             + " VALUES (?, ?, ?)           ";
-
-    private static final String SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP = ""
-            + " SELECT metric.\"id\",                     "
-            + "        metric.\"name\",                   "
-            + "        metric.\"type\",                   "
-            + "        data.\"timestamp\",                "
-            + "        data.\"value\"                     "
-            + " FROM   metric,                            "
-            + "        data                               "
-            + " WHERE  metric.\"name\" = ?                "
-            + " AND    metric.\"id\" = data.\"metric_id\" "
-            + " AND    data.\"timestamp\" >= ?            "
-            + " AND    data.\"timestamp\" < ?             "
-            + " GROUP BY metric.\"id\"                    ";
-
-    private static final String SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP = ""
-            + " SELECT metric.\"id\",                     "
-            + "        metric.\"name\",                   "
-            + "        metric.\"type\",                   "
-            + "        data.\"timestamp\",                "
-            + "        data.\"aggregation\",              "
-            + "        data.\"value\"                     "
-            + " FROM   metric,                            "
-            + "        data_%s AS data                    "
-            + " WHERE  metric.\"name\" = ?                "
-            + " AND    metric.\"id\" = data.\"metric_id\" "
-            + " AND    data.\"aggregation\" = ?           "
-            + " AND    data.\"timestamp\" >= ?            "
-            + " AND    data.\"timestamp\" < ?             "
-            + " GROUP BY metric.\"id\"                    ";
 
     private final TagRepository tagRepository;
 
@@ -142,84 +107,5 @@ public class MetricRepository extends Repository {
         } catch (SQLException e) {
             throw new PugSQLException("Cannot insert relationships between metric %s and tags %s with statement %s", metric, metric.getTags(), SQL_INSERT_METRIC_TAG, e);
         }
-    }
-
-    public <T> List<MetricPoints<T>> selectRawMetricPointsByNameBetweenTimestamp(String metricName, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
-        try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP)) {
-            statement.setString(1, metricName);
-            statement.setTimestamp(2, new Timestamp(fromInclusiveTimestamp));
-            statement.setTimestamp(3, new Timestamp(toExclusiveTimestamp));
-            ResultSet resultSet = statement.executeQuery();
-
-            return buildMetricPoints(resultSet);
-        } catch (Exception e) {
-            throw new PugSQLException("Cannot select metric %s points between %s and %s with statement %s",
-                                      metricName,
-                                      fromInclusiveTimestamp,
-                                      toExclusiveTimestamp,
-                                      SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP,
-                                      e);
-        }
-    }
-
-    public <T> List<MetricPoints<T>> selectMetricPointsByNameAndAggregationBetweenTimestamp(String metricName,
-                                                                                     String aggregation,
-                                                                                     Granularity granularity,
-                                                                                     long fromInclusiveTimestamp,
-                                                                                     long toExclusiveTimestamp) {
-        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity);
-
-        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setString(1, metricName);
-            statement.setString(2, granularity.toString());
-            statement.setTimestamp(3, new Timestamp(fromInclusiveTimestamp));
-            statement.setTimestamp(4, new Timestamp(toExclusiveTimestamp));
-            ResultSet resultSet = statement.executeQuery();
-
-            return buildMetricPoints(resultSet);
-        } catch (Exception e) {
-            throw new PugSQLException("Cannot select metric %s points aggregated as %s between %s and %s with granularity %s and statement %s",
-                                      metricName,
-                                      aggregation,
-                                      fromInclusiveTimestamp,
-                                      toExclusiveTimestamp,
-                                      granularity,
-                                      sql,
-                                      e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> List<MetricPoints<T>> buildMetricPoints(ResultSet resultSet) throws SQLException, InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        List<MetricPoints<T>> allPoints = new ArrayList<>();
-        MetricPoints points = null;
-        String aggregation;
-
-        while (resultSet.next()) {
-            Integer id = resultSet.getInt("id");
-            String name = resultSet.getString("name");
-            String type = resultSet.getString("type");
-            Long timestamp = resultSet.getTimestamp("timestamp").getTime();
-            byte[] bytes = resultSet.getBytes("value");
-            Map<String, String> tags = Collections.emptyMap();//TODO select tags?
-
-            try {
-                aggregation = resultSet.getString("aggregation");
-            } catch (SQLException e) {
-                aggregation = null;
-            }
-
-            if (points == null || !id.equals(points.getMetric().getId())) {
-                Metric<T> metric = (Metric<T>) Class.forName(type)
-                        .getConstructor(String.class, Map.class)
-                        .newInstance(name, tags);
-                points = new MetricPoints(metric);
-                allPoints.add(points);
-            }
-
-            points.put(aggregation, timestamp, bytes);
-        }
-
-        return allPoints;
     }
 }

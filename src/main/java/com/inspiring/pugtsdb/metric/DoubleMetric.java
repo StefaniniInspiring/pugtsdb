@@ -10,12 +10,12 @@ public class DoubleMetric extends Metric<Double> {
     }
 
     @Override
-    public byte[] toBytes(Double value) {
+    public byte[] valueToBytes(Double value) {
         return Bytes.fromDouble(value);
     }
 
     @Override
-    public Double fromBytes(byte[] bytes) {
+    public Double valueFromBytes(byte[] bytes) {
         return Bytes.toDouble(bytes);
     }
 }

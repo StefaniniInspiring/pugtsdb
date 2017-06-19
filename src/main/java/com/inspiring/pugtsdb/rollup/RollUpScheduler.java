@@ -2,7 +2,7 @@ package com.inspiring.pugtsdb.rollup;
 
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
-import com.inspiring.pugtsdb.rollup.purge.RawDataPurger;
+import com.inspiring.pugtsdb.rollup.purge.RawPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
 import com.inspiring.pugtsdb.util.GlobPattern;
@@ -37,7 +37,7 @@ public class RollUpScheduler {
 
     public RollUpScheduler(Repositories repositories) {
         this.repositories = repositories;
-        scheduledThreadPool.scheduleAtFixedRate(new RawDataPurger(repositories.getDataRepository()), INITIAL_DELAY, 5, SECONDS);
+        scheduledThreadPool.scheduleAtFixedRate(new RawPointPurger(repositories.getPointRepository()), INITIAL_DELAY, 5, SECONDS);
     }
 
     public void registerRollUp(String metricName, Aggregation<Object> aggregation, Retention retention) {

@@ -25,7 +25,7 @@ public class MetricPoints<T> {
     }
 
     public void put(String aggregation, long timestamp, byte[] bytes) {
-        put(aggregation, timestamp, metric.fromBytes(bytes));
+        put(aggregation, timestamp, metric.valueFromBytes(bytes));
     }
 
     public void put(String aggregation, long timestamp, T value) {

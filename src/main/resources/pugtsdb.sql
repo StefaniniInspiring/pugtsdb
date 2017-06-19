@@ -11,72 +11,72 @@ CREATE CACHED TABLE IF NOT EXISTS tag (
   PRIMARY KEY ("name", "value")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data (
+CREATE CACHED TABLE IF NOT EXISTS point (
   "metric_id" INTEGER   NOT NULL,
   "timestamp" TIMESTAMP NOT NULL,
   "value"     BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp"),
-  CONSTRAINT data__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data_1s (
+CREATE CACHED TABLE IF NOT EXISTS point_1s (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
-  CONSTRAINT data_1s__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point_1s__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data_1m (
+CREATE CACHED TABLE IF NOT EXISTS point_1m (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
-  CONSTRAINT data_1m__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point_1m__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data_1h (
+CREATE CACHED TABLE IF NOT EXISTS point_1h (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
-  CONSTRAINT data_1h__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point_1h__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data_1d (
+CREATE CACHED TABLE IF NOT EXISTS point_1d (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
-  CONSTRAINT data_1d__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point_1d__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data_1mo (
+CREATE CACHED TABLE IF NOT EXISTS point_1mo (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
-  CONSTRAINT data_1mo__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point_1mo__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 
-CREATE CACHED TABLE IF NOT EXISTS data_1y (
+CREATE CACHED TABLE IF NOT EXISTS point_1y (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
-  CONSTRAINT data_1y__metric_id_fkey FOREIGN KEY ("metric_id")
+  CONSTRAINT point_1y__metric_id_fkey FOREIGN KEY ("metric_id")
   REFERENCES metric ("id")
 );
 

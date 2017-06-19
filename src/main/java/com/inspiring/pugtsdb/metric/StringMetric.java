@@ -10,12 +10,12 @@ public class StringMetric extends Metric<String> {
     }
 
     @Override
-    public byte[] toBytes(String value) {
+    public byte[] valueToBytes(String value) {
         return Bytes.fromUtf8String(value);
     }
 
     @Override
-    public String fromBytes(byte[] bytes) {
+    public String valueFromBytes(byte[] bytes) {
         return Bytes.toUtf8String(bytes);
     }
 }

@@ -10,12 +10,12 @@ public class LongMetric extends Metric<Long> {
     }
 
     @Override
-    public byte[] toBytes(Long value) {
+    public byte[] valueToBytes(Long value) {
         return Bytes.fromLong(value);
     }
 
     @Override
-    public Long fromBytes(byte[] bytes) {
+    public Long valueFromBytes(byte[] bytes) {
         return Bytes.toLong(bytes);
     }
 }
