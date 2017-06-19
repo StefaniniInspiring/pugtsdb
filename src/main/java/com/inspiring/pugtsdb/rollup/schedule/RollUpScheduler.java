@@ -1,6 +1,7 @@
-package com.inspiring.pugtsdb.rollup;
+package com.inspiring.pugtsdb.rollup.schedule;
 
 import com.inspiring.pugtsdb.repository.Repositories;
+import com.inspiring.pugtsdb.rollup.RollUp;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.purge.RawPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
@@ -11,18 +12,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.inspiring.pugtsdb.util.GlobPattern.isGlob;
-import static java.lang.Math.max;
-import static java.lang.Runtime.getRuntime;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
@@ -30,14 +25,14 @@ public class RollUpScheduler {
 
     private static final int INITIAL_DELAY = 5;
 
-    private final ScheduledExecutorService scheduledThreadPool = newScheduledThreadPool(max(4, getRuntime().availableProcessors() * 2));
+    private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
     private final Map<Pattern, List<RollUp>> rollUpsByGlob = new HashMap<>();
     private final Map<String, List<ScheduledFuture<?>>> scheduledRollUps = new HashMap<>();
     private final Repositories repositories;
 
     public RollUpScheduler(Repositories repositories) {
         this.repositories = repositories;
-        scheduledThreadPool.scheduleAtFixedRate(new RawPointPurger(repositories.getPointRepository()), INITIAL_DELAY, 5, SECONDS);
+        scheduleRawPurger();
     }
 
     public void registerRollUp(String metricName, Aggregation<Object> aggregation, Retention retention) {
@@ -75,17 +70,24 @@ public class RollUpScheduler {
         }
     }
 
+    private void scheduleRawPurger() {
+        RawPointPurger rawPurger = new RawPointPurger(repositories.getPointRepository());
+        long purgePeriod = rawPurger.getRetention().getValue();
+        ChronoUnit purgUnit = rawPurger.getRetention().getUnit();
+        scheduledThreadPool.scheduleAtFixedRate(rawPurger, INITIAL_DELAY, SECONDS, purgePeriod, purgUnit);
+    }
+
     private List<RollUp> createRollUps(String metricName, Aggregation<Object> aggregation, Retention retention) {
         final AtomicReference<Granularity> sourceGranularity = new AtomicReference<>(null);
 
         return rollUpsByGlob.compute(GlobPattern.compile(metricName),
                                      (pattern, rollUps) -> Stream.of(Granularity.values())
                                              .map(targetGranularity -> new RollUp<>(metricName,
-                                                                                  aggregation,
-                                                                                  sourceGranularity.getAndSet(targetGranularity),
-                                                                                  targetGranularity,
-                                                                                  retention,
-                                                                                  repositories))
+                                                                                    aggregation,
+                                                                                    sourceGranularity.getAndSet(targetGranularity),
+                                                                                    targetGranularity,
+                                                                                    retention,
+                                                                                    repositories))
                                              .collect(toList()));
     }
 
@@ -98,22 +100,10 @@ public class RollUpScheduler {
     }
 
     private ScheduledFuture<?> scheduleRollUp(RollUp rollUp) {
+        long period = rollUp.getTargetGranularity().getValue();
         ChronoUnit unit = rollUp.getTargetGranularity().getUnit();
-        long value = rollUp.getTargetGranularity().getValue();
-        long rollUpPeriod;
 
-        switch (unit) {
-            case SECONDS:
-                rollUpPeriod = value;
-                break;
-            case MINUTES:
-                rollUpPeriod = MINUTES.toSeconds(value);
-                break;
-            default:
-                rollUpPeriod = HOURS.toSeconds(1);
-        }
-
-        return scheduledThreadPool.scheduleAtFixedRate(rollUp, INITIAL_DELAY, rollUpPeriod, SECONDS);
+        return scheduledThreadPool.scheduleAtFixedRate(rollUp, INITIAL_DELAY, SECONDS, period, unit);
     }
 
     public void stop() {

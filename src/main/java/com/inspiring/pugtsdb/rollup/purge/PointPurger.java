@@ -4,6 +4,8 @@ import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.time.Retention;
 import java.time.ZonedDateTime;
 
+import static com.inspiring.pugtsdb.util.Temporals.truncate;
+
 public abstract class PointPurger implements Runnable {
 
     protected final PointRepository pointRepository;
@@ -14,9 +16,12 @@ public abstract class PointPurger implements Runnable {
         this.retention = retention;
     }
 
+    public Retention getRetention() {
+        return retention;
+    }
 
     protected long lastValidTime() {
-        ZonedDateTime now = ZonedDateTime.now().truncatedTo(retention.getUnit());
+        ZonedDateTime now = truncate(ZonedDateTime.now(), retention.getUnit());
         ZonedDateTime lastValidDate = now.minus(retention);
 
         return lastValidDate.toInstant().toEpochMilli();

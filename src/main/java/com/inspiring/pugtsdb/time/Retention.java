@@ -31,6 +31,10 @@ public class Retention implements TemporalAmount {
         return new Retention(value, unit);
     }
 
+    public long getValue() {
+        return value;
+    }
+
     public ChronoUnit getUnit() {
         return unit;
     }

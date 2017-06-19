@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static com.inspiring.pugtsdb.util.Collections.isNotEmpty;
-import static java.lang.System.currentTimeMillis;
+import static com.inspiring.pugtsdb.util.Temporals.truncate;
 import static java.time.ZoneId.systemDefault;
 import static java.util.stream.Collectors.toMap;
 
@@ -59,7 +59,7 @@ public class RollUp<T> implements Runnable {
 
     @Override
     public void run() {
-        long nextTimestamp = truncateTimestamp(currentTimeMillis());
+        long nextTimestamp = truncate(Instant.now(), targetGranularity.getUnit());
 
         Data data = fetchSourceData(nextTimestamp);
         aggregateData(data);
@@ -93,7 +93,7 @@ public class RollUp<T> implements Runnable {
             points.getValues()
                     .computeIfPresent(data.sourceAggregation, (key, values) -> values.entrySet()
                             .stream()
-                            .collect(toMap(point -> truncateTimestamp(point.getKey()),
+                            .collect(toMap(point -> truncate(point.getKey(), targetGranularity.getUnit()),
                                            point -> point.getValue(),
                                            (value1, value2) -> aggregation.aggregate(value1, value2),
                                            TreeMap::new)));
@@ -110,12 +110,6 @@ public class RollUp<T> implements Runnable {
 
     private void saveData(Data data) {
         data.pointsList.forEach(points -> pointRepository.upsertMetricPoints(points, targetGranularity));
-    }
-
-    private long truncateTimestamp(long timestamp) {
-        return Instant.ofEpochMilli(timestamp)
-                .truncatedTo(targetGranularity.getUnit())
-                .toEpochMilli();
     }
 
     private class Data {

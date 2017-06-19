@@ -9,7 +9,7 @@ import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.time.Retention;
-import com.inspiring.pugtsdb.rollup.RollUpScheduler;
+import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
