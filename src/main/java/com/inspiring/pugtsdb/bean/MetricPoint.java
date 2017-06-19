@@ -12,6 +12,10 @@ public class MetricPoint<T> {
         this.point = point;
     }
 
+    public static <V> MetricPoint<V> of(Metric<V> metric, Point<V> point) {
+        return new MetricPoint<>(metric, point);
+    }
+
     public Metric<T> getMetric() {
         return metric;
     }

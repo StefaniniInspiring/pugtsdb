@@ -1,7 +1,7 @@
 package com.inspiring.pugtsdb.rollup;
 
 import com.inspiring.pugtsdb.bean.MetricPoints;
-import com.inspiring.pugtsdb.repository.MetricRepository;
+import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.purge.AggregatedPointPurger;
@@ -23,24 +23,25 @@ public class RollUp<T> implements Runnable {
     private final Aggregation<T> aggregation;
     private final Granularity sourceGranularity;
     private final Granularity targetGranularity;
-    private final Repositories repositories;
+    private final PointRepository pointRepository;
     private final AggregatedPointPurger purger;
 
     private Long lastTimestamp = null;
 
     public RollUp(String metricName,
                   Aggregation<T> aggregation,
-                  Granularity sourceGranularity, Granularity targetGranularity,
+                  Granularity sourceGranularity,
+                  Granularity targetGranularity,
                   Retention retention,
                   Repositories repositories) {
         this.metricName = metricName;
         this.aggregation = aggregation;
         this.sourceGranularity = sourceGranularity;
         this.targetGranularity = targetGranularity;
-        this.repositories = repositories;
-        this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, repositories.getPointRepository());
+        this.pointRepository = repositories.getPointRepository();
+        this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
 
-        lastTimestamp = repositories.getPointRepository().selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
+        lastTimestamp = pointRepository.selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
         if (lastTimestamp == null) {
             lastTimestamp = 0L;
@@ -71,17 +72,16 @@ public class RollUp<T> implements Runnable {
 
     private Data fetchSourceData(long nextTimestamp) {
         Data data = new Data();
-        MetricRepository metricRepository = repositories.getMetricRepository();
 
         if (data.isRaw()) {
-            data.pointsList = metricRepository.selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
+            data.pointsList = pointRepository.selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
             data.sourceAggregation = null;
         } else {
-            data.pointsList = metricRepository.selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
-                                                                                                      aggregation.getName(),
-                                                                                                      sourceGranularity,
-                                                                                                      lastTimestamp,
-                                                                                                      nextTimestamp);
+            data.pointsList = pointRepository.selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
+                                                                                                     aggregation.getName(),
+                                                                                                     sourceGranularity,
+                                                                                                     lastTimestamp,
+                                                                                                     nextTimestamp);
             data.sourceAggregation = aggregation.getName();
         }
 
@@ -109,7 +109,7 @@ public class RollUp<T> implements Runnable {
     }
 
     private void saveData(Data data) {
-        data.pointsList.forEach(points -> repositories.getPointRepository().upsertMetricPoints(points, targetGranularity));
+        data.pointsList.forEach(points -> pointRepository.upsertMetricPoints(points, targetGranularity));
     }
 
     private long truncateTimestamp(long timestamp) {

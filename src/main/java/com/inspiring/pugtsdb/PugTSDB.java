@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb;
 
+import com.inspiring.pugtsdb.bean.MetricPoint;
 import com.inspiring.pugtsdb.bean.Point;
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
@@ -101,7 +102,7 @@ public class PugTSDB implements Closeable {
                 metricRepository.insertMetric(metric);
             }
 
-            pointRepository.upsertMetricPoint(metric, point);
+            pointRepository.upsertMetricPoint(MetricPoint.of(metric, point));
 
             getConnection().commit();
         } catch (PugException e) {
