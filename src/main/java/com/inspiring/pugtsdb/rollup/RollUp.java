@@ -15,7 +15,6 @@ import java.util.TreeMap;
 import static com.inspiring.pugtsdb.util.Collections.isNotEmpty;
 import static com.inspiring.pugtsdb.util.Temporals.truncate;
 import static java.time.ZoneId.systemDefault;
-import static java.util.stream.Collectors.toMap;
 
 public class RollUp<T> implements Runnable {
 
@@ -74,14 +73,14 @@ public class RollUp<T> implements Runnable {
         Data data = new Data();
 
         if (data.isRaw()) {
-            data.pointsList = pointRepository.selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
+            data.metricsPoints = pointRepository.selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
             data.sourceAggregation = null;
         } else {
-            data.pointsList = pointRepository.selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
-                                                                                                     aggregation.getName(),
-                                                                                                     sourceGranularity,
-                                                                                                     lastTimestamp,
-                                                                                                     nextTimestamp);
+            data.metricsPoints = pointRepository.selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
+                                                                                                        aggregation.getName(),
+                                                                                                        sourceGranularity,
+                                                                                                        lastTimestamp,
+                                                                                                        nextTimestamp);
             data.sourceAggregation = aggregation.getName();
         }
 
@@ -89,32 +88,46 @@ public class RollUp<T> implements Runnable {
     }
 
     private void aggregateData(Data data) {
-        for (MetricPoints<T> points : data.pointsList) {
-            points.getValues()
-                    .computeIfPresent(data.sourceAggregation, (key, values) -> values.entrySet()
+        for (MetricPoints<T> metricPoints : data.metricsPoints) {
+            metricPoints.getPoints()
+                    .computeIfPresent(data.sourceAggregation, (aggregation, points) -> points.entrySet()
                             .stream()
-                            .collect(toMap(point -> truncate(point.getKey(), targetGranularity.getUnit()),
-                                           point -> point.getValue(),
-                                           (value1, value2) -> aggregation.aggregate(value1, value2),
-                                           TreeMap::new)));
+                            .collect(() -> new TreeMap<>(),
+                                     (map, point) -> {
+                                         long timestamp = truncate(point.getKey(), targetGranularity.getUnit());
+                                         T newValue = point.getValue();
+
+                                         if (map.compute(timestamp, (key, oldValue) -> this.aggregation.aggregate(oldValue, newValue)) == null) {
+                                             map.put(timestamp, null);
+                                         }
+                                     },
+                                     (map1, map2) -> map1.putAll(map2)));
 
             if (data.isRaw()) {
-                Map<Long, T> values = points.getValues().remove(null);
+                Map<Long, T> points = metricPoints.getPoints().remove(null);
 
-                if (isNotEmpty(values)) {
-                    points.getValues().put(aggregation.getName(), values);
+                if (isNotEmpty(points)) {
+                    metricPoints.getPoints().put(aggregation.getName(), points);
                 }
             }
         }
     }
 
     private void saveData(Data data) {
-        data.pointsList.forEach(points -> pointRepository.upsertMetricPoints(points, targetGranularity));
+        try {
+            data.metricsPoints
+                    .forEach(metricPoints -> pointRepository.upsertMetricPoints(metricPoints, targetGranularity));
+            pointRepository.getConnection().commit();
+        } catch (Exception e) {
+            pointRepository.getConnection().rollback();
+        } finally {
+            pointRepository.getConnection().close();
+        }
     }
 
     private class Data {
 
-        List<MetricPoints<T>> pointsList;
+        List<MetricPoints<T>> metricsPoints;
         String sourceAggregation;
 
         boolean isRaw() {

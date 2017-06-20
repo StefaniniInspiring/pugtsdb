@@ -12,6 +12,13 @@ public class RawPointPurger extends PointPurger {
 
     @Override
     public void run() {
-        pointRepository.deleteRawPointsBeforeTime(lastValidTime());
+        try {
+            pointRepository.deleteRawPointsBeforeTime(lastValidTime());
+            pointRepository.getConnection().commit();
+        } catch (Exception e) {
+            pointRepository.getConnection().rollback();
+        } finally {
+            pointRepository.getConnection().close();
+        }
     }
 }

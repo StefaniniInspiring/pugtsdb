@@ -13,12 +13,10 @@ import cucumber.api.java.Before;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
@@ -50,19 +48,12 @@ public class UpsertionSteps<T> {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws SQLException {
         if (pugTSDB != null) {
-            pugTSDB.close();
-        }
-
-        if (storage != null) {
-            Path storagePath = Paths.get(storage);
-            File storageDir = storagePath.getParent().toFile();
-            String filename = storagePath.getFileName().toString();
-            File[] files = storageDir.listFiles((dir, name) -> name.matches(filename + "\\..*"));
-
-            for (File file : files) {
-                file.delete();
+            try (Statement statement = pugTSDB.getDataSource().getConnection().createStatement()) {
+                statement.execute(" DROP ALL OBJECTS DELETE FILES ");
+            } finally {
+                pugTSDB.close();
             }
         }
     }
@@ -177,7 +168,7 @@ public class UpsertionSteps<T> {
     @Then("^the value is saved$")
     public void theValueIsSaved() throws Throwable {
         try (Connection connection = pugTSDB.getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT \"metric_id\", \"timestamp\", \"value\" FROM data WHERE \"metric_id\"=?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT \"metric_id\", \"timestamp\", \"value\" FROM point WHERE \"metric_id\"=?")) {
             statement.setInt(1, metric.getId());
             ResultSet resultSet = statement.executeQuery();
 

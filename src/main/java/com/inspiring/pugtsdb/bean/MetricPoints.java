@@ -10,7 +10,7 @@ import static java.util.Comparator.nullsFirst;
 public class MetricPoints<T> {
 
     private final Metric<T> metric;
-    private final Map<String, Map<Long, T>> values = new TreeMap<>(nullsFirst(naturalOrder()));
+    private final Map<String, Map<Long, T>> points = new TreeMap<>(nullsFirst(naturalOrder()));
 
     public MetricPoints(Metric<T> metric) {
         this.metric = metric;
@@ -20,8 +20,8 @@ public class MetricPoints<T> {
         return metric;
     }
 
-    public Map<String, Map<Long, T>> getValues() {
-        return values;
+    public Map<String, Map<Long, T>> getPoints() {
+        return points;
     }
 
     public void put(String aggregation, long timestamp, byte[] bytes) {
@@ -29,14 +29,14 @@ public class MetricPoints<T> {
     }
 
     public void put(String aggregation, long timestamp, T value) {
-        values.computeIfAbsent(aggregation, s -> new TreeMap<>()).put(timestamp, value);
+        points.computeIfAbsent(aggregation, s -> new TreeMap<>()).put(timestamp, value);
     }
 
     @Override
     public String toString() {
         return "MetricPoints{" +
                 "metric=" + metric +
-                ", values=" + values +
+                ", points=" + points +
                 '}';
     }
 }

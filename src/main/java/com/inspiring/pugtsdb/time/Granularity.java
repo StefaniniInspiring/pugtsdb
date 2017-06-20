@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.time;
 
+import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import java.time.temporal.ChronoUnit;
 
 public enum Granularity {
@@ -32,5 +33,26 @@ public enum Granularity {
 
     public ChronoUnit getUnit() {
         return unit;
+    }
+
+    public static Granularity fromString(String string) {
+        for (Granularity granularity : values()) {
+            if (granularity.string.equals(string)) {
+                return granularity;
+            }
+        }
+
+        return valueOf(string);
+    }
+
+    public static Granularity valueOf(long value, ChronoUnit unit) {
+        for (Granularity granularity : values()) {
+            if (granularity.value == value
+                    && granularity.unit == unit) {
+                return granularity;
+            }
+        }
+
+        throw new PugIllegalArgumentException("No granularity found with value " + value + " and unit " + unit);
     }
 }

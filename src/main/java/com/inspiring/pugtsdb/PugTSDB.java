@@ -124,6 +124,13 @@ public class PugTSDB implements Closeable {
     }
 
     private PugConnection getConnection() {
+        try {
+            if (currentConnection.get().isClosed()) {
+                currentConnection.remove();
+            }
+        } catch (SQLException ignored) {
+        }
+
         return currentConnection.get();
     }
 

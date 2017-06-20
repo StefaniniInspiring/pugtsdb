@@ -22,7 +22,7 @@ public class PointRepository extends Repository {
 
     private static final String SQL_SELECT_MAX_POINT_TIMESTAMP_BY_NAME_AND_AGGREGATION = ""
             + " SELECT MAX(point.\"timestamp\") AS max     "
-            + " FROM   point_%s,                           "
+            + " FROM   point_%s AS point,                  "
             + "        metric                              "
             + " WHERE  point.\"metric_id\" = metric.\"id\" "
             + " AND    metric.\"name\" = ?                 "
@@ -40,7 +40,8 @@ public class PointRepository extends Repository {
             + " AND    metric.\"id\" = point.\"metric_id\" "
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             "
-            + " GROUP BY metric.\"id\"                     ";
+            + " GROUP BY metric.\"id\",                    "
+            + "          point.\"timestamp\"               ";
 
     private static final String SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP = ""
             + " SELECT metric.\"id\",                      "
@@ -180,7 +181,7 @@ public class PointRepository extends Repository {
         String sql = String.format(SQL_MERGE_POINT, granularity);
         Metric<T> metric = metricPoints.getMetric();
 
-        metricPoints.getValues()
+        metricPoints.getPoints()
                 .forEach((aggregation, point) -> point
                         .forEach((timestamp, value) -> {
                             try (PreparedStatement statement = getConnection().prepareStatement(sql)) {

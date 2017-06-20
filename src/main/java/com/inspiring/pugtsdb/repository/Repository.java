@@ -11,7 +11,7 @@ public abstract class Repository {
         this.connectionSupplier = connectionSupplier;
     }
 
-    protected PugConnection getConnection() {
+    public PugConnection getConnection() {
         return connectionSupplier.get();
     }
 }

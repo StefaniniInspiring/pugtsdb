@@ -5,9 +5,8 @@ import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import cucumber.api.java.After;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -21,23 +20,12 @@ public class PugCreationSteps {
     private Exception actualException;
 
     @After
-    public void cleanup() {
+    public void cleanup() throws SQLException {
         if (actualPug != null) {
-            actualPug.close();
-        }
-
-        if (actualStorage != null) {
-            Path storagePath = Paths.get(actualStorage);
-            Path storageParent = storagePath.getParent();
-
-            if (storageParent != null) {
-                File storageDir = storageParent.toFile();
-                String filename = storagePath.getFileName().toString();
-                File[] files = storageDir.listFiles((dir, name) -> name.matches(filename + "\\..*"));
-
-                for (File file : files) {
-                    file.delete();
-                }
+            try (Statement statement = actualPug.getDataSource().getConnection().createStatement()) {
+                statement.execute(" DROP ALL OBJECTS DELETE FILES ");
+            } finally {
+                actualPug.close();
             }
         }
     }

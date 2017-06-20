@@ -24,6 +24,13 @@ public class AggregatedPointPurger extends PointPurger {
 
     @Override
     public void run() {
-        pointRepository.deletePointsByNameAndAggregationBeforeTime(metricName, aggregation, granularity, lastValidTime());
+        try {
+            pointRepository.deletePointsByNameAndAggregationBeforeTime(metricName, aggregation, granularity, lastValidTime());
+            pointRepository.getConnection().commit();
+        } catch (Exception e) {
+            pointRepository.getConnection().rollback();
+        } finally {
+            pointRepository.getConnection().close();
+        }
     }
 }

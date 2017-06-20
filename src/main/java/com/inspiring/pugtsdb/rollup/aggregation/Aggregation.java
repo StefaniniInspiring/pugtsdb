@@ -30,7 +30,7 @@ public abstract class Aggregation<T> {
             return value1;
         }
 
-        return aggregate(value1, value2);
+        return aggregationFunction.apply(value1, value2);
     }
 
     public abstract T aggregate(T value1, T value2);
