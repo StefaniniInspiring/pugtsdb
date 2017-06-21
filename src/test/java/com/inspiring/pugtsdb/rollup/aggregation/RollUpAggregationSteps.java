@@ -34,6 +34,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+@SuppressWarnings("Duplicates")
 public class RollUpAggregationSteps {
 
     private Metric metric;
@@ -248,9 +249,8 @@ public class RollUpAggregationSteps {
                      ? " INSERT INTO point (\"metric_id\", \"timestamp\", \"value\") VALUES (?, ?, ?) "
                      : " INSERT INTO point_" + sourceGranularity + " (\"metric_id\", \"timestamp\", \"value\", \"aggregation\") VALUES (?, ?, ?, ?) ";
 
-        Connection connection = pugTSDB.getDataSource().getConnection();
-
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection connection = pugTSDB.getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setBytes(3, metric.valueToBytes(value));
@@ -276,9 +276,8 @@ public class RollUpAggregationSteps {
                 + " WHERE  \"metric_id\" = ?   "
                 + " AND    \"aggregation\" = ? ";
 
-        Connection connection = pugTSDB.getDataSource().getConnection();
-
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection connection = pugTSDB.getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, metric.getId());
             statement.setString(2, aggregation.getName());
             ResultSet resultSet = statement.executeQuery();
@@ -314,17 +313,16 @@ public class RollUpAggregationSteps {
 
     private void assertRollUp(String timestampState, String timestampUnitString, Object expectedValue) throws Throwable {
         String sql = ""
-                + " SELECT \"value\",         "
-                + "        \"timestamp\"      "
+                + " SELECT \"value\"           "
                 + " FROM   point_" + targetGranularity
                 + " WHERE  \"metric_id\" = ?   "
                 + " AND    \"timestamp\" = ?   "
                 + " AND    \"aggregation\" = ? ";
 
         Timestamp timestamp = resolveTimestamp(timestampState, timestampUnitString, 0, null);
-        Connection connection = pugTSDB.getDataSource().getConnection();
 
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection connection = pugTSDB.getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setString(3, aggregation.getName());
@@ -359,6 +357,4 @@ public class RollUpAggregationSteps {
 
         return new Timestamp(timestamp.toInstant().toEpochMilli());
     }
-
-
 }

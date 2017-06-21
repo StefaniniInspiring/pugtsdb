@@ -24,7 +24,7 @@ public class Temporals {
             case HOURS:
             case HALF_DAYS:
             case DAYS:
-                return instant.truncatedTo(unit).toEpochMilli();
+                return instant.atZone(systemDefault()).truncatedTo(unit).toEpochSecond() * 1000;
             case MONTHS:
                 return instant.atZone(systemDefault()).truncatedTo(DAYS).withDayOfMonth(1).toEpochSecond() * 1000;
             case YEARS:

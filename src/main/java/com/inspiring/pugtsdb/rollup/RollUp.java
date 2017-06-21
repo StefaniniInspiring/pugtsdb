@@ -52,6 +52,10 @@ public class RollUp<T> implements Runnable {
         }
     }
 
+    public Granularity getSourceGranularity() {
+        return sourceGranularity;
+    }
+
     public Granularity getTargetGranularity() {
         return targetGranularity;
     }
@@ -123,6 +127,16 @@ public class RollUp<T> implements Runnable {
         } finally {
             pointRepository.getConnection().close();
         }
+    }
+
+    @Override
+    public String toString() {
+        return "RollUp{" +
+                "metricName='" + metricName + '\'' +
+                ", aggregation=" + aggregation +
+                ", sourceGranularity=" + sourceGranularity +
+                ", targetGranularity=" + targetGranularity +
+                '}';
     }
 
     private class Data {

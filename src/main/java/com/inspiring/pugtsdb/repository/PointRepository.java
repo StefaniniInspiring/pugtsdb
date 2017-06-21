@@ -53,7 +53,7 @@ public class PointRepository extends Repository {
             + " FROM   metric,                             "
             + "        point_%s AS point                   "
             + " WHERE  metric.\"name\" = ?                 "
-            + " AND    metric.\"id\" = data.\"metric_id\"  "
+            + " AND    metric.\"id\" = point.\"metric_id\" "
             + " AND    point.\"aggregation\" = ?           "
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             "
@@ -105,7 +105,11 @@ public class PointRepository extends Repository {
             ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
-                max = resultSet.getLong("max");
+                Timestamp timestamp = resultSet.getTimestamp("max");
+
+                if (timestamp != null) {
+                    max = timestamp.getTime();
+                }
             }
         } catch (SQLException e) {
             throw new PugSQLException("Cannot select max timestamp of metric %s point aggregated as %s with granulairty %s and statment %s",
@@ -145,7 +149,7 @@ public class PointRepository extends Repository {
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, metricName);
-            statement.setString(2, granularity.toString());
+            statement.setString(2, aggregation);
             statement.setTimestamp(3, new Timestamp(fromInclusiveTimestamp));
             statement.setTimestamp(4, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
