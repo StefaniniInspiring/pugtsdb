@@ -19,7 +19,7 @@ public class AggregatedPointPurger extends PointPurger {
         super(pointRepository, retention);
         this.metricName = metricName;
         this.granularity = granularity;
-        this.aggregation = aggregation.toString();
+        this.aggregation = aggregation.getName();
     }
 
     @Override
