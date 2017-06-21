@@ -1,4 +1,4 @@
-Feature: Metric insertion tests
+Feature: Metric insertion tests of double points
 
   Scenario: Insert a Double metric with min value
     Given the type "Double"

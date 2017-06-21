@@ -1,4 +1,4 @@
-Feature: Metric insertion tests
+Feature: Metric insertion tests of null point value
 
   Scenario: Insert a null metric
     When the metric is inserted

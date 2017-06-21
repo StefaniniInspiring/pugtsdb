@@ -1,4 +1,4 @@
-Feature: Metric insertion tests
+Feature: Metric insertion tests of boolean points
 
   Scenario: Insert a Boolean metric
     Given the type "Boolean"

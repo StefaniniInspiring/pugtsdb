@@ -1,4 +1,4 @@
-Feature: Metric insertion tests
+Feature: Metric insertion tests of string points
 
   Scenario: Insert a String metric
     Given the type "String"

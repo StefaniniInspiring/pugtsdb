@@ -1,4 +1,4 @@
-Feature: Metric insertion tests
+Feature: Metric insertion tests of long points
 
   Scenario: Insert a Long metric with min value
     Given the type "Long"
