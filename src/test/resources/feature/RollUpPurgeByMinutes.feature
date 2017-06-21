@@ -24,3 +24,14 @@ Feature: Roll-up purge by minutes tests
     And a rolled up point on "past" 2 "minutes" with a double 123
     When the rollup executes
     Then the rolled up point on "past" 2 "minutes" will be purged
+
+  Scenario: Mixed points date
+    Given a retention of 2 "minutes"
+    And a rollup from 1 "seconds" to 1 "minutes"
+    And a rolled up point on "past" 1 "minutes" with a double 123
+    And a rolled up point on "past" 2 "minutes" with a double 123
+    And a rolled up point on "past" 3 "minutes" with a double 123
+    When the rollup executes
+    Then the rolled up point on "past" 1 "minutes" wont be purged
+    Then the rolled up point on "past" 2 "minutes" wont be purged
+    Then the rolled up point on "past" 3 "minutes" will be purged
