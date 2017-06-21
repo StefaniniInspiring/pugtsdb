@@ -2,7 +2,10 @@ package com.inspiring.pugtsdb.rollup.aggregation;
 
 import com.inspiring.pugtsdb.PugTSDB;
 import com.inspiring.pugtsdb.metric.BooleanMetric;
+import com.inspiring.pugtsdb.metric.DoubleMetric;
+import com.inspiring.pugtsdb.metric.LongMetric;
 import com.inspiring.pugtsdb.metric.Metric;
+import com.inspiring.pugtsdb.metric.StringMetric;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.RollUp;
 import com.inspiring.pugtsdb.time.Granularity;
@@ -41,13 +44,12 @@ public class RollUpAggregationSteps {
     private RollUp rollUp;
     private PugTSDB pugTSDB;
     private Repositories repositories;
-    private String storage = "/tmp/pug-rollup-test";
 
     private Instant executionInstant;
 
     @Before
     public void prepare() {
-        pugTSDB = new PugTSDB(storage, "test", "test");
+        pugTSDB = new PugTSDB("/tmp/pug-rollup-test", "test", "test");
 
         repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
                 .filter(field -> {
@@ -87,6 +89,30 @@ public class RollUpAggregationSteps {
         repositories.getMetricRepository().getConnection().close();
     }
 
+    @Given("^a double metric named \"([^\"]*)\"$")
+    public void aDoubleMetricNamed(String name) throws Throwable {
+        metric = new DoubleMetric(name, emptyMap());
+        repositories.getMetricRepository().insertMetric(metric);
+        repositories.getMetricRepository().getConnection().commit();
+        repositories.getMetricRepository().getConnection().close();
+    }
+
+    @Given("^a long metric named \"([^\"]*)\"$")
+    public void aLongMetricNamed(String name) throws Throwable {
+        metric = new LongMetric(name, emptyMap());
+        repositories.getMetricRepository().insertMetric(metric);
+        repositories.getMetricRepository().getConnection().commit();
+        repositories.getMetricRepository().getConnection().close();
+    }
+
+    @Given("^a string metric named \"([^\"]*)\"$")
+    public void aStringMetricNamed(String name) throws Throwable {
+        metric = new StringMetric(name, emptyMap());
+        repositories.getMetricRepository().insertMetric(metric);
+        repositories.getMetricRepository().getConnection().commit();
+        repositories.getMetricRepository().getConnection().close();
+    }
+
     @Given("^an AND aggregation of boolean values$")
     public void anANDAggregationOfBooleanValues() throws Throwable {
         aggregation = new BooleanAndAggregation();
@@ -95,6 +121,61 @@ public class RollUpAggregationSteps {
     @Given("^an OR aggregation of boolean values$")
     public void anORAggregationOfBooleanValues() throws Throwable {
         aggregation = new BooleanOrAggregation();
+    }
+
+    @Given("^a SUM aggregation of double values$")
+    public void aSUMAggregationOfDoubleValues() throws Throwable {
+        aggregation = new DoubleSumAggregation();
+    }
+
+    @Given("^a MIN aggregation of double values$")
+    public void aMINAggregationOfDoubleValues() throws Throwable {
+        aggregation = new DoubleMinAggregation();
+    }
+
+    @Given("^a MAX aggregation of double values$")
+    public void aMAXAggregationOfDoubleValues() throws Throwable {
+        aggregation = new DoubleMaxAggregation();
+    }
+
+    @Given("^an AVG aggregation of double values$")
+    public void anAVGAggregationOfDoubleValues() throws Throwable {
+        aggregation = new DoubleAvgAggregation();
+    }
+
+    @Given("^a SUM aggregation of long values$")
+    public void aSUMAggregationOfLongValues() throws Throwable {
+        aggregation = new LongSumAggregation();
+    }
+
+    @Given("^a MIN aggregation of long values$")
+    public void aMINAggregationOfLongValues() throws Throwable {
+        aggregation = new LongMinAggregation();
+    }
+
+    @Given("^a MAX aggregation of long values$")
+    public void aMAXAggregationOfLongValues() throws Throwable {
+        aggregation = new LongMaxAggregation();
+    }
+
+    @Given("^an AVG aggregation of long values$")
+    public void anAVGAggregationOfLongValues() throws Throwable {
+        aggregation = new LongAvgAggregation();
+    }
+
+    @Given("^a SUM aggregation of string values$")
+    public void aSUMAggregationOfStringValues() throws Throwable {
+        aggregation = new StringSumAggregation();
+    }
+
+    @Given("^a MIN aggregation of string values$")
+    public void aMINAggregationOfStringValues() throws Throwable {
+        aggregation = new StringMinAggregation();
+    }
+
+    @Given("^a MAX aggregation of string values$")
+    public void aMAXAggregationOfStringValues() throws Throwable {
+        aggregation = new StringMaxAggregation();
     }
 
     @Given("^a source granularity of (\\d+) \"([^\"]*)\"$")
@@ -127,6 +208,33 @@ public class RollUpAggregationSteps {
                                       long amountToAddValue,
                                       String amountToAddUnit,
                                       Boolean pointValue) throws Throwable {
+        insertPoint(resolveTimestamp(timestampState, timestampUnitString, amountToAddValue, amountToAddUnit), pointValue);
+    }
+
+    @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" plus (\\d+) \"([^\"]*)\" with a double (\\d+)$")
+    public void aPointOnPlusWithADouble(String timestampState,
+                                        String timestampUnitString,
+                                        long amountToAddValue,
+                                        String amountToAddUnit,
+                                        Double pointValue) throws Throwable {
+        insertPoint(resolveTimestamp(timestampState, timestampUnitString, amountToAddValue, amountToAddUnit), pointValue);
+    }
+
+    @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" plus (\\d+) \"([^\"]*)\" with a long (\\d+)$")
+    public void aPointOnPlusWithALong(String timestampState,
+                                      String timestampUnitString,
+                                      long amountToAddValue,
+                                      String amountToAddUnit,
+                                      Long pointValue) throws Throwable {
+        insertPoint(resolveTimestamp(timestampState, timestampUnitString, amountToAddValue, amountToAddUnit), pointValue);
+    }
+
+    @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" plus (\\d+) \"([^\"]*)\" with a string \"([^\"]*)\"$")
+    public void aPointOnPlusWithAString(String timestampState,
+                                        String timestampUnitString,
+                                        long amountToAddValue,
+                                        String amountToAddUnit,
+                                        String pointValue) throws Throwable {
         insertPoint(resolveTimestamp(timestampState, timestampUnitString, amountToAddValue, amountToAddUnit), pointValue);
     }
 
@@ -184,6 +292,21 @@ public class RollUpAggregationSteps {
         assertRollUp(timestampState, timestampUnitString, expectedValue);
     }
 
+    @Then("^a point on \"([^\"]*)\" \"([^\"]*)\" will be rolled up with a double (\\d+)$")
+    public void aPointOnWillBeRolledUpWithADouble(String timestampState, String timestampUnitString, Double expectedValue) throws Throwable {
+        assertRollUp(timestampState, timestampUnitString, expectedValue);
+    }
+
+    @Then("^a point on \"([^\"]*)\" \"([^\"]*)\" will be rolled up with a long (\\d+)$")
+    public void aPointOnWillBeRolledUpWithALong(String timestampState, String timestampUnitString, Long expectedValue) throws Throwable {
+        assertRollUp(timestampState, timestampUnitString, expectedValue);
+    }
+
+    @Then("^a point on \"([^\"]*)\" \"([^\"]*)\" will be rolled up with a string \"([^\"]*)\"$")
+    public void aPointOnWillBeRolledUpWithAString(String timestampState, String timestampUnitString, String expectedValue) throws Throwable {
+        assertRollUp(timestampState, timestampUnitString, expectedValue);
+    }
+
     @Then("^a point on \"([^\"]*)\" \"([^\"]*)\" will be rolled up with null value$")
     public void aPointOnWillBeRolledUpWithNullValue(String timestampState, String timestampUnitString) throws Throwable {
         assertRollUp(timestampState, timestampUnitString, null);
@@ -236,5 +359,6 @@ public class RollUpAggregationSteps {
 
         return new Timestamp(timestamp.toInstant().toEpochMilli());
     }
+
 
 }
