@@ -30,23 +30,6 @@ Feature: Roll-up tests of long values
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a long 123
 
-  Scenario: Many points including null for SUM aggregation
-    Given a SUM aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a long 10
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a long 20
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a long 30
-
-  Scenario: Many points all null for SUM aggregation
-    Given a SUM aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
-
   # MIN aggregation
 
   Scenario: No points for MIN aggregation
@@ -70,23 +53,6 @@ Feature: Roll-up tests of long values
     And a point on "past" "seconds" plus 30 "millis" with a long 3
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a long 3
-
-  Scenario: Many points including null for MIN aggregation
-    Given a MIN aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a long 10
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a long 20
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a long 10
-
-  Scenario: Many points all null for MIN aggregation
-    Given a MIN aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
 
   # MAX aggregation
 
@@ -112,23 +78,6 @@ Feature: Roll-up tests of long values
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a long 100
 
-  Scenario: Many points including null for MAX aggregation
-    Given a MAX aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a long 10
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a long 20
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a long 20
-
-  Scenario: Many points all null for MAX aggregation
-    Given a MAX aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
-
   # AVG aggregation
 
   Scenario: No points for AVG aggregation
@@ -152,20 +101,3 @@ Feature: Roll-up tests of long values
     And a point on "past" "seconds" plus 30 "millis" with a long 3
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a long 41
-
-  Scenario: Many points including null for AVG aggregation
-    Given an AVG aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a long 10
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a long 20
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a long 10
-
-  Scenario: Many points all null for AVG aggregation
-    Given an AVG aggregation of long values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value

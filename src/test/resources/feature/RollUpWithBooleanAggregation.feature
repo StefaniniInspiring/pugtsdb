@@ -29,23 +29,6 @@ Feature: Roll-up tests of boolean values
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a boolean "false"
 
-  Scenario: Many points including null for AND aggregation
-    Given an AND aggregation of boolean values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a boolean "true"
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a boolean "false"
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a boolean "false"
-
-  Scenario: Many points all null for AND aggregation
-    Given an AND aggregation of boolean values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
-
   # OR aggregation
 
   Scenario: No points for OR aggregation
@@ -69,19 +52,3 @@ Feature: Roll-up tests of boolean values
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a boolean "true"
 
-  Scenario: Many points including null for OR aggregation
-    Given an OR aggregation of boolean values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a boolean "true"
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a boolean "false"
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a boolean "true"
-
-  Scenario: Many points all null for OR aggregation
-    Given an OR aggregation of boolean values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value

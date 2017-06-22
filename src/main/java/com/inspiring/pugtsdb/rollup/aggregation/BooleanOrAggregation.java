@@ -1,5 +1,7 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
+import java.util.List;
+
 public class BooleanOrAggregation extends Aggregation<Boolean> {
 
     public BooleanOrAggregation() {
@@ -7,7 +9,9 @@ public class BooleanOrAggregation extends Aggregation<Boolean> {
     }
 
     @Override
-    public Boolean aggregate(Boolean value1, Boolean value2) {
-        return computeIfNonNullValues(value1, value2, (aBoolean, aBoolean2) -> aBoolean || aBoolean2);
+    public Boolean aggregate(List<Boolean> values) {
+        return values.stream()
+                .reduce((aBoolean, aBoolean2) -> aBoolean || aBoolean2)
+                .orElse(false);
     }
 }

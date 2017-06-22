@@ -239,11 +239,6 @@ public class RollUpAggregationSteps {
         insertPoint(resolveTimestamp(timestampState, timestampUnitString, amountToAddValue, amountToAddUnit), pointValue);
     }
 
-    @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" plus (\\d+) \"([^\"]*)\" with a null value$")
-    public void aPointOnPlusWithANullValue(String timestampState, String timestampUnitString, long amountToAddValue, String amountToAddUnit) throws Throwable {
-        insertPoint(resolveTimestamp(timestampState, timestampUnitString, amountToAddValue, amountToAddUnit), null);
-    }
-
     private void insertPoint(Timestamp timestamp, Object value) throws Throwable {
         String sql = sourceGranularity == null
                      ? " INSERT INTO point (\"metric_id\", \"timestamp\", \"value\") VALUES (?, ?, ?) "
@@ -304,11 +299,6 @@ public class RollUpAggregationSteps {
     @Then("^a point on \"([^\"]*)\" \"([^\"]*)\" will be rolled up with a string \"([^\"]*)\"$")
     public void aPointOnWillBeRolledUpWithAString(String timestampState, String timestampUnitString, String expectedValue) throws Throwable {
         assertRollUp(timestampState, timestampUnitString, expectedValue);
-    }
-
-    @Then("^a point on \"([^\"]*)\" \"([^\"]*)\" will be rolled up with null value$")
-    public void aPointOnWillBeRolledUpWithNullValue(String timestampState, String timestampUnitString) throws Throwable {
-        assertRollUp(timestampState, timestampUnitString, null);
     }
 
     private void assertRollUp(String timestampState, String timestampUnitString, Object expectedValue) throws Throwable {

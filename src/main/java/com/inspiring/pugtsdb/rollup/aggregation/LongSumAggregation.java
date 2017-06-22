@@ -1,5 +1,7 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
+import java.util.List;
+
 public class LongSumAggregation extends Aggregation<Long> {
 
     public LongSumAggregation() {
@@ -7,7 +9,9 @@ public class LongSumAggregation extends Aggregation<Long> {
     }
 
     @Override
-    public Long aggregate(Long value1, Long value2) {
-        return computeIfNonNullValues(value1, value2, (aLong, aLong2) -> aLong + aLong2);
+    public Long aggregate(List<Long> values) {
+        return values.stream()
+                .mapToLong(Long::longValue)
+                .sum();
     }
 }

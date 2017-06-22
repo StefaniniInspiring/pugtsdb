@@ -1,11 +1,17 @@
 package com.inspiring.pugtsdb.bean;
 
+import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
+
 public class Point<T> {
 
     private final long timestamp;
     private final T value;
 
     public Point(long timestamp, T value) {
+        if (value == null) {
+            throw new PugIllegalArgumentException("Point value cannot be null");
+        }
+
         this.timestamp = timestamp;
         this.value = value;
     }

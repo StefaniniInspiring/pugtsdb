@@ -20,7 +20,7 @@ public class ScheduledThreadPool implements ScheduledExecutorService {
 
     private final ScheduledExecutorService threadPool = newScheduledThreadPool(max(4, getRuntime().availableProcessors() * 2));
 
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelayValue, TimeUnit initialDelayUnit, long periodValue, ChronoUnit periodUnit) {
+    public ScheduledFuture<?>scheduleAtFixedRate(Runnable command, long initialDelayValue, TimeUnit initialDelayUnit, long periodValue, ChronoUnit periodUnit) {
         long initialDelayNanos = initialDelayUnit.toNanos(initialDelayValue);
 
         switch (periodUnit) {
@@ -34,7 +34,7 @@ public class ScheduledThreadPool implements ScheduledExecutorService {
                 return scheduleAtFixedRate(command, initialDelayNanos, TimeUnit.SECONDS.toNanos(periodValue), NANOSECONDS);
             case MINUTES:
                 return scheduleAtFixedRate(command, initialDelayNanos, TimeUnit.MINUTES.toNanos(periodValue), NANOSECONDS);
-            case DAYS:
+            case HOURS:
                 return scheduleAtFixedRate(command, initialDelayNanos, TimeUnit.HOURS.toNanos(periodValue), NANOSECONDS);
             default:
                 Trigger trigger = new ChronoTrigger(periodValue, periodUnit);

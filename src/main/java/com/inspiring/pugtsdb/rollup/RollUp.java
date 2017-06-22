@@ -15,6 +15,9 @@ import java.util.TreeMap;
 import static com.inspiring.pugtsdb.util.Collections.isNotEmpty;
 import static com.inspiring.pugtsdb.util.Temporals.truncate;
 import static java.time.ZoneId.systemDefault;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 public class RollUp<T> implements Runnable {
 
@@ -94,18 +97,18 @@ public class RollUp<T> implements Runnable {
     private void aggregateData(Data data) {
         for (MetricPoints<T> metricPoints : data.metricsPoints) {
             metricPoints.getPoints()
-                    .computeIfPresent(data.sourceAggregation, (aggregation, points) -> points.entrySet()
-                            .stream()
-                            .collect(() -> new TreeMap<>(),
-                                     (map, point) -> {
-                                         long timestamp = truncate(point.getKey(), targetGranularity.getUnit());
-                                         T newValue = point.getValue();
-
-                                         if (map.compute(timestamp, (key, oldValue) -> this.aggregation.aggregate(oldValue, newValue)) == null) {
-                                             map.put(timestamp, null);
-                                         }
-                                     },
-                                     (map1, map2) -> map1.putAll(map2)));
+                    .computeIfPresent(data.sourceAggregation,
+                                      (aggregation, points) -> points.isEmpty()
+                                                               ? null
+                                                               : points.entrySet()
+                                                                       .stream()
+                                                                       .collect(groupingBy(point -> truncate(point.getKey(), targetGranularity.getUnit()),
+                                                                                           mapping(point -> point.getValue(), toList())))
+                                                                       .entrySet()
+                                                                       .stream()
+                                                                       .collect(() -> new TreeMap<>(),
+                                                                                (map, entry) -> map.put(entry.getKey(), this.aggregation.aggregate(entry.getValue())),
+                                                                                (map1, map2) -> map1.putAll(map2)));
 
             if (data.isRaw()) {
                 Map<Long, T> points = metricPoints.getPoints().remove(null);

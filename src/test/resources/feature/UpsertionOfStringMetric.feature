@@ -71,8 +71,4 @@ Feature: Metric insertion tests of string points
     And the timestamp 1496681817319
     When the metric is created
     And the metric is inserted
-    Then no exceptions are thrown
-    And the metric is saved
-    And the tags are saved
-    And the relationship between the metric and the tags is saved
-    And the value is saved
+    Then an illegal argument exception are thrown

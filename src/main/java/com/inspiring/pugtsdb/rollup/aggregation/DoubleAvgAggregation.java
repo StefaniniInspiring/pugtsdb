@@ -1,5 +1,7 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
+import java.util.List;
+
 public class DoubleAvgAggregation extends Aggregation<Double> {
 
     public DoubleAvgAggregation() {
@@ -7,7 +9,10 @@ public class DoubleAvgAggregation extends Aggregation<Double> {
     }
 
     @Override
-    public Double aggregate(Double value1, Double value2) {
-        return computeIfNonNullValues(value1, value2, (aDouble1, aDouble2) -> (aDouble1 + aDouble2) / 2);
+    public Double aggregate(List<Double> values) {
+        return values.stream()
+                .mapToDouble(Double::doubleValue)
+                .sum()
+                / values.size();
     }
 }

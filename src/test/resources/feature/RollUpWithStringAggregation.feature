@@ -30,23 +30,6 @@ Feature: Roll-up tests of string values
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a string "foobarbaz"
 
-  Scenario: Many points including null for SUM aggregation
-    Given a SUM aggregation of string values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a string "foo"
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a string "bar"
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a string "foobar"
-
-  Scenario: Many points all null for SUM aggregation
-    Given a SUM aggregation of string values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
-
   # MIN aggregation
 
   Scenario: No points for MIN aggregation
@@ -71,23 +54,6 @@ Feature: Roll-up tests of string values
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a string "apples"
 
-  Scenario: Many points including null for MIN aggregation
-    Given a MIN aggregation of string values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a string "oranges"
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a string "apples"
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a string "apples"
-
-  Scenario: Many points all null for MIN aggregation
-    Given a MIN aggregation of string values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
-
   # MAX aggregation
 
   Scenario: No points for MAX aggregation
@@ -111,21 +77,3 @@ Feature: Roll-up tests of string values
     And a point on "past" "seconds" plus 30 "millis" with a string "grapes"
     When the rollup executes
     Then a point on "past" "seconds" will be rolled up with a string "oranges"
-
-  Scenario: Many points including null for MAX aggregation
-    Given a MAX aggregation of string values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a string "oranges"
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    And a point on "past" "seconds" plus 30 "millis" with a string "apples"
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with a string "oranges"
-
-  Scenario: Many points all null for MAX aggregation
-    Given a MAX aggregation of string values
-    And a rollup instance
-    And a point on "past" "seconds" plus 10 "millis" with a null value
-    And a point on "past" "seconds" plus 20 "millis" with a null value
-    When the rollup executes
-    Then a point on "past" "seconds" will be rolled up with null value
-

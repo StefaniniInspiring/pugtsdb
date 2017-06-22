@@ -1,6 +1,9 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
-import static java.lang.Math.min;
+import java.util.List;
+
+import static java.util.Comparator.naturalOrder;
+import static java.util.Comparator.nullsLast;
 
 public class DoubleMinAggregation extends Aggregation<Double> {
 
@@ -9,7 +12,9 @@ public class DoubleMinAggregation extends Aggregation<Double> {
     }
 
     @Override
-    public Double aggregate(Double value1, Double value2) {
-        return computeIfNonNullValues(value1, value2, (aDouble1, aDouble2) -> min(aDouble1, aDouble2));
+    public Double aggregate(List<Double> values) {
+        return values.stream()
+                .min(nullsLast(naturalOrder()))
+                .orElse(0D);
     }
 }

@@ -1,6 +1,9 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
-import static java.lang.Math.max;
+import java.util.List;
+
+import static java.util.Comparator.naturalOrder;
+import static java.util.Comparator.nullsFirst;
 
 public class LongMaxAggregation extends Aggregation<Long> {
 
@@ -9,7 +12,9 @@ public class LongMaxAggregation extends Aggregation<Long> {
     }
 
     @Override
-    public Long aggregate(Long value1, Long value2) {
-        return computeIfNonNullValues(value1, value2, (aLong, aLong2) -> max(aLong, aLong2));
+    public Long aggregate(List<Long> values) {
+        return values.stream()
+                .max(nullsFirst(naturalOrder()))
+                .orElse(0L);
     }
 }
