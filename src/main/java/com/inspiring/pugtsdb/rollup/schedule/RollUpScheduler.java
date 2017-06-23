@@ -8,6 +8,7 @@ import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
 import com.inspiring.pugtsdb.util.GlobPattern;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class RollUpScheduler {
     private static final int INITIAL_DELAY = 5;
 
     private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
-    private final Map<Pattern, List<RollUp>> rollUpsByGlob = new HashMap<>();
+    private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new HashMap<>();
     private final Map<String, List<ScheduledFuture<?>>> scheduledRollUps = new HashMap<>();
     private final Repositories repositories;
 
@@ -36,7 +37,7 @@ public class RollUpScheduler {
     }
 
     public void registerRollUp(String metricName, Aggregation<Object> aggregation, Retention retention) {
-        List<RollUp> rollUps = createRollUps(metricName, aggregation, retention);
+        List<RollUpBuilder<?>> rollUpBuilders = prepareRollUps(metricName, aggregation, retention);
 
         if (isGlob(metricName)) {
             scheduledRollUps.values()
@@ -46,13 +47,15 @@ public class RollUpScheduler {
             scheduledRollUps.clear();
 
             for (String name : repositories.getMetricRepository().selectMetricNames()) {
-                List<ScheduledFuture<?>> schedules = rollUpsByGlob.entrySet()
+                List<ScheduledFuture<?>> schedules = rollUpBuildersByGlob.entrySet()
                         .stream()
                         .filter(entry -> patternMatches(name, entry.getKey()))
-                        .reduce(null, this::mostSpecificPattern)
+                        .reduce(this::mostSpecificPattern)
+                        .get()
                         .getValue()
                         .stream()
-                        .map(this::scheduleRollUp)
+                        .map(rollUpBuilder -> rollUpBuilder.build(name))
+                        .map(rollUp -> scheduleRollUp(rollUp))
                         .collect(toList());
                 scheduledRollUps.put(metricName, schedules);
             }
@@ -63,8 +66,9 @@ public class RollUpScheduler {
                                              oldSchedules.forEach(scheduledRollUp -> scheduledRollUp.cancel(true));
                                          }
 
-                                         return rollUps.stream()
-                                                 .map(this::scheduleRollUp)
+                                         return rollUpBuilders.stream()
+                                                 .map(rollUpBuilder -> rollUpBuilder.build(metricName))
+                                                 .map(rollUp -> scheduleRollUp(rollUp))
                                                  .collect(toList());
                                      });
         }
@@ -77,29 +81,31 @@ public class RollUpScheduler {
         scheduledThreadPool.scheduleAtFixedRate(rawPurger, INITIAL_DELAY, SECONDS, purgePeriod, purgUnit);
     }
 
-    private List<RollUp> createRollUps(String metricName, Aggregation<Object> aggregation, Retention retention) {
+    private List<RollUpBuilder<?>> prepareRollUps(String metricName, Aggregation<Object> aggregation, Retention retention) {
         final AtomicReference<Granularity> sourceGranularity = new AtomicReference<>(null);
 
-        return rollUpsByGlob.compute(GlobPattern.compile(metricName),
-                                     (pattern, rollUps) -> Stream.of(Granularity.values())
-                                             .map(targetGranularity -> new RollUp<>(metricName,
-                                                                                    aggregation,
-                                                                                    sourceGranularity.getAndSet(targetGranularity),
-                                                                                    targetGranularity,
-                                                                                    retention,
-                                                                                    repositories))
-                                             .collect(toList()));
+        List<RollUpBuilder<?>> curBuilders = rollUpBuildersByGlob.computeIfAbsent(GlobPattern.compile(metricName), pattern -> new ArrayList<>());
+        List<RollUpBuilder<?>> newBuilders = Stream.of(Granularity.values())
+                .map(targetGranularity -> new RollUpBuilder<>(aggregation,
+                                                              sourceGranularity.getAndSet(targetGranularity),
+                                                              targetGranularity,
+                                                              retention))
+                .collect(toList());
+        curBuilders.removeIf(builder -> builder.aggregation.getName().equals(aggregation.getName()));
+        curBuilders.addAll(newBuilders);
+
+        return curBuilders;
     }
 
     private boolean patternMatches(String name, Pattern pattern) {
         return pattern.matcher(name).matches();
     }
 
-    private Entry<Pattern, List<RollUp>> mostSpecificPattern(Entry<Pattern, List<RollUp>> entry1, Entry<Pattern, List<RollUp>> entry2) {
+    private <T> Entry<Pattern, T> mostSpecificPattern(Entry<Pattern, T> entry1, Entry<Pattern, T> entry2) {
         return entry1 != null && entry1.getKey().pattern().length() > entry2.getKey().pattern().length() ? entry1 : entry2;
     }
 
-    private ScheduledFuture<?> scheduleRollUp(RollUp rollUp) {
+    private ScheduledFuture<?> scheduleRollUp(RollUp<?> rollUp) {
         long period = rollUp.getTargetGranularity().getValue();
         ChronoUnit unit = rollUp.getTargetGranularity().getUnit();
 
@@ -115,6 +121,25 @@ public class RollUpScheduler {
             }
         } catch (InterruptedException e) {
             scheduledThreadPool.shutdownNow();
+        }
+    }
+
+    private class RollUpBuilder<T> {
+
+        final Aggregation<T> aggregation;
+        final Granularity sourceGranularity;
+        final Granularity targetGranularity;
+        final Retention retention;
+
+        RollUpBuilder(Aggregation<T> aggregation, Granularity sourceGranularity, Granularity targetGranularity, Retention retention) {
+            this.aggregation = aggregation;
+            this.sourceGranularity = sourceGranularity;
+            this.targetGranularity = targetGranularity;
+            this.retention = retention;
+        }
+
+        RollUp<T> build(String metricName) {
+            return new RollUp<>(metricName, aggregation, sourceGranularity, targetGranularity, retention, repositories);
         }
     }
 }

@@ -55,6 +55,14 @@ public class RollUp<T> implements Runnable {
         }
     }
 
+    public String getMetricName() {
+        return metricName;
+    }
+
+    public Aggregation<T> getAggregation() {
+        return aggregation;
+    }
+
     public Granularity getSourceGranularity() {
         return sourceGranularity;
     }

@@ -1,22 +1,27 @@
 package com.inspiring.pugtsdb;
 
 import com.inspiring.pugtsdb.bean.MetricPoint;
+import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.bean.Point;
+import com.inspiring.pugtsdb.bean.Tag;
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.metric.Metric;
-import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.MetricRepository;
+import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
-import com.inspiring.pugtsdb.time.Retention;
-import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
+import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
+import com.inspiring.pugtsdb.time.Granularity;
+import com.inspiring.pugtsdb.time.Interval;
+import com.inspiring.pugtsdb.time.Retention;
 import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Scanner;
 import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -83,6 +88,30 @@ public class PugTSDB implements Closeable {
 
     public DataSource getDataSource() {
         return ds;
+    }
+
+    public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, String aggregation, Granularity granularity, Interval interval) {
+        return null;
+    }
+
+    public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, Granularity granularity, Interval interval) {
+        return null;
+    }
+
+    public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, Interval interval) {
+        return null;
+    }
+
+    public List<MetricPoints<?>> selectMetricsPoints(String metricName, String aggregation, Granularity granularity, Interval interval, Tag...tags) {
+        return null;
+    }
+
+    public List<MetricPoints<?>> selectMetricsPoints(String metricName, Granularity granularity, Interval interval, Tag...tags) {
+        return null;
+    }
+
+    public List<MetricPoints<?>> selectMetricsPoints(String metricName, Interval interval, Tag...tags) {
+        return null;
     }
 
     public <T> void upsert(Metric<T> metric, Point<T> point) {
