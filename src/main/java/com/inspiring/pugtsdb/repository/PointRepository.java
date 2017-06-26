@@ -12,10 +12,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+
+import static java.util.Collections.emptyMap;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class PointRepository extends Repository {
@@ -91,8 +92,11 @@ public class PointRepository extends Repository {
             + " AND   \"aggregation\" = ?    "
             + " AND   \"timestamp\" < ?      ";
 
-    public PointRepository(Supplier<PugConnection> connectionSupplier) {
+    private final TagRepository tagRepository;
+
+    public PointRepository(Supplier<PugConnection> connectionSupplier, TagRepository tagRepository) {
         super(connectionSupplier);
+        this.tagRepository = tagRepository;
     }
 
     public Long selectMaxPointTimestampByNameAndAggregation(String metricName, String aggregation, Granularity granularity) {
@@ -129,7 +133,7 @@ public class PointRepository extends Repository {
             statement.setTimestamp(3, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricPoints(resultSet);
+            return buildMetricsPoints(resultSet, false);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points between %s and %s with statement %s",
                                       metricName,
@@ -154,7 +158,7 @@ public class PointRepository extends Repository {
             statement.setTimestamp(4, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricPoints(resultSet);
+            return buildMetricsPoints(resultSet, false);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points aggregated as %s between %s and %s with granularity %s and statement %s",
                                       metricName,
@@ -234,9 +238,9 @@ public class PointRepository extends Repository {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> List<MetricPoints<T>> buildMetricPoints(ResultSet resultSet) throws Exception {
-        List<MetricPoints<T>> allPoints = new ArrayList<>();
-        MetricPoints points = null;
+    private <T> List<MetricPoints<T>> buildMetricsPoints(ResultSet resultSet, boolean fetchTags) throws Exception {
+        List<MetricPoints<T>> metricsPoints = new ArrayList<>();
+        MetricPoints metricPoints = null;
         String aggregation;
 
         while (resultSet.next()) {
@@ -245,7 +249,9 @@ public class PointRepository extends Repository {
             String type = resultSet.getString("type");
             Long timestamp = resultSet.getTimestamp("timestamp").getTime();
             byte[] bytes = resultSet.getBytes("value");
-            Map<String, String> tags = Collections.emptyMap();//TODO select tags?
+            Map<String, String> tags = fetchTags
+                                       ? tagRepository.selectTagsByMetricId(id)
+                                       : emptyMap();
 
             try {
                 aggregation = resultSet.getString("aggregation");
@@ -253,17 +259,17 @@ public class PointRepository extends Repository {
                 aggregation = null;
             }
 
-            if (points == null || !id.equals(points.getMetric().getId())) {
+            if (metricPoints == null || !id.equals(metricPoints.getMetric().getId())) {
                 Metric<T> metric = (Metric<T>) Class.forName(type)
                         .getConstructor(String.class, Map.class)
                         .newInstance(name, tags);
-                points = new MetricPoints(metric);
-                allPoints.add(points);
+                metricPoints = new MetricPoints(metric);
+                metricsPoints.add(metricPoints);
             }
 
-            points.put(aggregation, timestamp, bytes);
+            metricPoints.put(aggregation, timestamp, bytes);
         }
 
-        return allPoints;
+        return metricsPoints;
     }
 }

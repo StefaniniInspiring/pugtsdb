@@ -11,6 +11,7 @@ import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
+import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
 import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
@@ -114,7 +115,7 @@ public class PugTSDB implements Closeable {
         return null;
     }
 
-    public <T> void upsert(Metric<T> metric, Point<T> point) {
+    public <T> void upsertMetricPoint(Metric<T> metric, Point<T> point) {
         if (metric == null) {
             throw new PugIllegalArgumentException("Cannot upsert a null metric");
         }
@@ -142,8 +143,16 @@ public class PugTSDB implements Closeable {
         }
     }
 
-    public void registerRollUp(String metricName, Aggregation<Object> aggregation, Retention retention) {
-        rollUpScheduler.registerRollUp(metricName, aggregation, retention);
+    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention) {
+        rollUpScheduler.registerRollUps(metricName, aggregation, retention);
+    }
+
+    public void addRollUpListener(String metricName, Aggregation<?> aggregation, Granularity granularity, RollUpListener listener) {
+        rollUpScheduler.addRollUpListener(metricName, aggregation, granularity, listener);
+    }
+
+    public RollUpListener removeRollUpListener(String metricName, Aggregation<?> aggregation, Granularity granularity) {
+        return rollUpScheduler.removeRollUpListener(metricName, aggregation, granularity);
     }
 
     @Override

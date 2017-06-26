@@ -111,7 +111,7 @@ public class UpsertionSteps<T> {
     @When("^the metric is inserted$")
     public void theMetricIsInserted() throws Throwable {
         try {
-            pugTSDB.upsert(metric, (Point<T>) point);
+            pugTSDB.upsertMetricPoint(metric, (Point<T>) point);
         } catch (Exception e) {
             actualException = e;
         }

@@ -11,7 +11,7 @@ public class Repositories {
 
     public Repositories(Supplier<PugConnection> connectionSupplier) {
         this.tagRepository = new TagRepository(connectionSupplier);
-        this.pointRepository = new PointRepository(connectionSupplier);
+        this.pointRepository = new PointRepository(connectionSupplier, tagRepository);
         this.metricRepository = new MetricRepository(connectionSupplier, tagRepository);
     }
 

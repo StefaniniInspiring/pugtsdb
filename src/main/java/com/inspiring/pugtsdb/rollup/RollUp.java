@@ -4,6 +4,8 @@ import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
+import com.inspiring.pugtsdb.rollup.listen.RollUpEvent;
+import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
 import com.inspiring.pugtsdb.rollup.purge.AggregatedPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
@@ -15,6 +17,7 @@ import java.util.TreeMap;
 import static com.inspiring.pugtsdb.util.Collections.isNotEmpty;
 import static com.inspiring.pugtsdb.util.Temporals.truncate;
 import static java.time.ZoneId.systemDefault;
+import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
@@ -28,6 +31,7 @@ public class RollUp<T> implements Runnable {
     private final PointRepository pointRepository;
     private final AggregatedPointPurger purger;
 
+    private RollUpListener listener = null;
     private Long lastTimestamp = null;
 
     public RollUp(String metricName,
@@ -71,6 +75,14 @@ public class RollUp<T> implements Runnable {
         return targetGranularity;
     }
 
+    public RollUpListener getListener() {
+        return listener;
+    }
+
+    public void setListener(RollUpListener listener) {
+        this.listener = listener;
+    }
+
     @Override
     public void run() {
         long nextTimestamp = truncate(Instant.now(), targetGranularity.getUnit());
@@ -82,6 +94,10 @@ public class RollUp<T> implements Runnable {
         lastTimestamp = nextTimestamp;
 
         purger.run();
+
+        if (listener != null) {
+            runAsync(() -> listener.onRollUp(new RollUpEvent(metricName, aggregation.getName(), sourceGranularity, targetGranularity)));
+        }
     }
 
     private Data fetchSourceData(long nextTimestamp) {
