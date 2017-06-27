@@ -92,36 +92,73 @@ public class PugTSDB implements Closeable {
     }
 
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, String aggregation, Granularity granularity, Interval interval) {
-        return null;
+        try {
+            return repositories.getPointRepository()
+                    .selectMetricPointsByIdAndAggregationBetweenTimestamp(metric.getId(), aggregation, granularity, interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
     }
 
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, Granularity granularity, Interval interval) {
-        return null;
+        try {
+            return repositories.getPointRepository()
+                    .selectMetricPointsByIdBetweenTimestamp(metric.getId(), granularity, interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
     }
 
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, Interval interval) {
-        return null;
+        try {
+            return repositories.getPointRepository()
+                    .selectRawMetricPointsByIdBetweenTimestamp(metric.getId(), interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
     }
 
-    public List<MetricPoints<?>> selectMetricsPoints(String metricName, String aggregation, Granularity granularity, Interval interval, Tag...tags) {
-        return null;
+    public <T> List<MetricPoints<T>> selectMetricsPoints(String metricName, String aggregation, Granularity granularity, Interval interval, Tag... tags) {
+        try {
+            return repositories.getPointRepository()
+                    .selectMetricsPointsByNameAndAggregationAndTagsBetweenTimestamp(metricName,
+                                                                                    aggregation,
+                                                                                    granularity,
+                                                                                    Tag.toMap(tags),
+                                                                                    interval.getFromTime(),
+                                                                                    interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
     }
 
-    public List<MetricPoints<?>> selectMetricsPoints(String metricName, Granularity granularity, Interval interval, Tag...tags) {
-        return null;
+    public <T> List<MetricPoints<T>> selectMetricsPoints(String metricName, Granularity granularity, Interval interval, Tag... tags) {
+        try {
+            return repositories.getPointRepository()
+                    .selectMetricsPointsByNameAndTagsBetweenTimestamp(metricName, granularity, Tag.toMap(tags), interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
     }
 
-    public List<MetricPoints<?>> selectMetricsPoints(String metricName, Interval interval, Tag...tags) {
-        return null;
+    public <T> List<MetricPoints<T>> selectMetricsPoints(String metricName, Interval interval, Tag... tags) {
+        try {
+            return repositories.getPointRepository()
+                    .selectRawMetricsPointsByNameAndTagsBetweenTimestamp(metricName, Tag.toMap(tags), interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
     }
 
-    public <T> void upsertMetricPoint(Metric<T> metric, Point<T> point) {
-        if (metric == null) {
-            throw new PugIllegalArgumentException("Cannot upsert a null metric");
+    public <T> void upsertMetricPoint(MetricPoint<T> metricPoint) {
+        if (metricPoint == null || metricPoint.getPoint() == null) {
+            throw new PugIllegalArgumentException("Cannot upsert a null metric point");
         }
 
-        if (point == null) {
-            throw new PugIllegalArgumentException("Cannot upsert a null metric point");
+        Metric<T> metric = metricPoint.getMetric();
+
+        if (metric == null) {
+            throw new PugIllegalArgumentException("Cannot upsert a null metric");
         }
 
         MetricRepository metricRepository = repositories.getMetricRepository();
@@ -132,7 +169,7 @@ public class PugTSDB implements Closeable {
                 metricRepository.insertMetric(metric);
             }
 
-            pointRepository.upsertMetricPoint(MetricPoint.of(metric, point));
+            pointRepository.upsertMetricPoint(metricPoint);
 
             getConnection().commit();
         } catch (PugException e) {
@@ -141,6 +178,10 @@ public class PugTSDB implements Closeable {
         } finally {
             closeConnection();
         }
+    }
+
+    public <T> void upsertMetricPoint(Metric<T> metric, Point<T> point) {
+        upsertMetricPoint(MetricPoint.of(metric, point));
     }
 
     public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention) {

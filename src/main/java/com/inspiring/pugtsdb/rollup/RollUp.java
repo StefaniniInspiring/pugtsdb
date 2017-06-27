@@ -104,14 +104,14 @@ public class RollUp<T> implements Runnable {
         Data data = new Data();
 
         if (data.isRaw()) {
-            data.metricsPoints = pointRepository.selectRawMetricPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
+            data.metricsPoints = pointRepository.selectRawMetricsPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
             data.sourceAggregation = null;
         } else {
-            data.metricsPoints = pointRepository.selectMetricPointsByNameAndAggregationBetweenTimestamp(metricName,
-                                                                                                        aggregation.getName(),
-                                                                                                        sourceGranularity,
-                                                                                                        lastTimestamp,
-                                                                                                        nextTimestamp);
+            data.metricsPoints = pointRepository.selectMetricsPointsByNameAndAggregationBetweenTimestamp(metricName,
+                                                                                                         aggregation.getName(),
+                                                                                                         sourceGranularity,
+                                                                                                         lastTimestamp,
+                                                                                                         nextTimestamp);
             data.sourceAggregation = aggregation.getName();
         }
 
