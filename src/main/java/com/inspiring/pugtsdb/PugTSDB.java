@@ -33,7 +33,7 @@ public class PugTSDB implements Closeable {
 
     private static final String DATABASE_SCRIPT = "pugtsdb.sql";
 
-    private final JdbcConnectionPool ds;
+    private final JdbcConnectionPool dataSource;
     private final ThreadLocal<PugConnection> currentConnection;
     private final Repositories repositories;
     private final RollUpScheduler rollUpScheduler;
@@ -51,11 +51,11 @@ public class PugTSDB implements Closeable {
             throw new PugIllegalArgumentException("Database password cannot be null");
         }
 
-        ds = initDatabase(storagePath, username, password);
+        dataSource = initDatabase(storagePath, username, password);
 
         currentConnection = ThreadLocal.withInitial(() -> {
             try {
-                return new PugConnection(ds.getConnection());
+                return new PugConnection(dataSource.getConnection());
             } catch (SQLException e) {
                 throw new PugSQLException("Cannot open a connection", e);
             }
@@ -88,7 +88,7 @@ public class PugTSDB implements Closeable {
     }
 
     public DataSource getDataSource() {
-        return ds;
+        return dataSource;
     }
 
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, String aggregation, Granularity granularity, Interval interval) {
@@ -198,7 +198,7 @@ public class PugTSDB implements Closeable {
 
     @Override
     public void close() {
-        ds.dispose();
+        dataSource.dispose();
         rollUpScheduler.stop();
     }
 

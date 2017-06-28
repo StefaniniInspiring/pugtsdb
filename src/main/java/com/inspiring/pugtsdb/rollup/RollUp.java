@@ -95,7 +95,7 @@ public class RollUp<T> implements Runnable {
 
         purger.run();
 
-        if (listener != null) {
+        if (listener != null && isNotEmpty(data.metricsPoints)) {
             runAsync(() -> listener.onRollUp(new RollUpEvent(metricName, aggregation.getName(), sourceGranularity, targetGranularity)));
         }
     }

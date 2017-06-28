@@ -16,7 +16,7 @@ public class TagRepository extends Repository {
             + " SELECT \"metric_id\",    "
             + "        \"tag_name\",     "
             + "        \"tag_value\"     "
-            + " FROM   tag               "
+            + " FROM   metric_tag        "
             + " WHERE  \"metric_id\" = ? ";
 
     private static final String SQL_MERGE_TAG = ""

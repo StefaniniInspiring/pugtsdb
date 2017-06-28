@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.IntStream.range;
 
-@SuppressWarnings("SqlNoDataSourceInspection")
+@SuppressWarnings({"SqlNoDataSourceInspection", "Duplicates"})
 public class PointRepository extends Repository {
 
     private static final String SQL_SELECT_MAX_POINT_TIMESTAMP_BY_NAME_AND_AGGREGATION = ""
@@ -44,7 +44,6 @@ public class PointRepository extends Repository {
             + " AND    metric.\"id\" = ?                   "
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             ";
-
 
     private static final String SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP = ""
             + " SELECT metric.\"id\",                      "
@@ -123,9 +122,10 @@ public class PointRepository extends Repository {
             + " AND    t{0}.\"tag_name\" = ?              "
             + " AND    t{0}.\"tag_value\" = ?             ";
 
-    private static final String SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION = ""
+    private static final String SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP = ""
             + " GROUP BY metric.\"id\",                   "
-            + "          point.\"aggregation\"            ";
+            + "          point.\"aggregation\",           "
+            + "          point.\"timestamp\"               ";
 
     private static final String SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP = ""
             + " GROUP BY metric.\"id\",                    "
@@ -302,7 +302,7 @@ public class PointRepository extends Repository {
                                                                       Granularity granularity,
                                                                       long fromInclusiveTimestamp,
                                                                       long toExclusiveTimestamp) {
-        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP, granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP;
+        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP, granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, metricId);
@@ -327,7 +327,8 @@ public class PointRepository extends Repository {
                                                                                              Granularity granularity,
                                                                                              long fromInclusiveTimestamp,
                                                                                              long toExclusiveTimestamp) {
-        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION;
+        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP,
+                                   granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, metricName);
@@ -357,7 +358,7 @@ public class PointRepository extends Repository {
                                                                                                     long toExclusiveTimestamp) {
         StringBuilder sql = new StringBuilder(String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity));
         range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
-        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION);
+        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
             statement.setString(1, metricName);
@@ -395,7 +396,7 @@ public class PointRepository extends Repository {
                                                                                       long toExclusiveTimestamp) {
         StringBuilder sql = new StringBuilder(String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP, granularity));
         range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
-        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION);
+        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
             statement.setString(1, metricName);
@@ -535,7 +536,7 @@ public class PointRepository extends Repository {
             Integer id = resultSet.getInt("id");
             String name = resultSet.getString("name");
             String type = resultSet.getString("type");
-            Map<String, String> tags =  tagRepository.selectTagsByMetricId(id);
+            Map<String, String> tags = tagRepository.selectTagsByMetricId(id);
             Metric<T> metric = (Metric<T>) Class.forName(type)
                     .getConstructor(String.class, Map.class)
                     .newInstance(name, tags);

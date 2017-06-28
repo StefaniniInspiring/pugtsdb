@@ -1,0 +1,176 @@
+package com.inspiring.pugtsdb.selection;
+
+import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.bean.MetricPoints;
+import com.inspiring.pugtsdb.metric.DoubleMetric;
+import com.inspiring.pugtsdb.metric.Metric;
+import com.inspiring.pugtsdb.repository.Repositories;
+import com.inspiring.pugtsdb.time.Granularity;
+import com.inspiring.pugtsdb.time.Interval;
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static java.lang.Double.parseDouble;
+import static java.util.Collections.emptyMap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+@SuppressWarnings("Duplicates")
+public class SelectionSteps {
+
+    private Granularity granularity;
+    private PugTSDB pugTSDB;
+    private Repositories repositories;
+
+    private MetricPoints actualMetricPoints;
+    private List<MetricPoints> actualMetricsPoints;
+
+    @Before
+    public void prepare() {
+        pugTSDB = new PugTSDB("/tmp/pug-rollup-test", "test", "test");
+
+        repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
+                .filter(field -> {
+                    field.setAccessible(true);
+                    return field.isAccessible();
+                })
+                .filter(field -> field.getType().equals(Repositories.class))
+                .map(field -> {
+                    try {
+                        return (Repositories) field.get(pugTSDB);
+                    } catch (IllegalAccessException e) {
+                        return null;
+                    }
+                })
+                .findFirst()
+                .get();
+    }
+
+    @After
+    public void cleanup() throws SQLException {
+        if (pugTSDB != null) {
+            try (Statement statement = pugTSDB.getDataSource().getConnection().createStatement()) {
+                statement.execute(" DROP ALL OBJECTS DELETE FILES ");
+            } finally {
+                pugTSDB.close();
+            }
+        }
+    }
+
+    @Given("^a granularity of (\\d+) \"([^\"]*)\"$")
+    public void aGranularityOf(long value, String unitString) throws Throwable {
+        if (!ChronoUnit.MILLIS.toString().equalsIgnoreCase(unitString)) {
+            granularity = Granularity.valueOf(value, ChronoUnit.valueOf(unitString.toUpperCase()));
+        }
+    }
+
+    @Given("^the points for metric \"([^\"]*)\":$")
+    public void thePointsForMetric(String metricName, List<List<String>> rows) throws Throwable {
+        Metric<Double> metric = new DoubleMetric(metricName, emptyMap());
+
+        if (repositories.getMetricRepository().notExistsMetric(metric.getId())) {
+            repositories.getMetricRepository().insertMetric(metric);
+            repositories.getMetricRepository().getConnection().commit();
+            repositories.getMetricRepository().getConnection().close();
+        }
+
+        if (granularity == null) {
+            String sql = "MERGE INTO point (\"metric_id\", \"timestamp\", \"value\") VALUES (?, ?, ?)";
+
+            for (List<String> row : rows) {
+                try (Connection connection = pugTSDB.getDataSource().getConnection();
+                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, metric.getId());
+                    statement.setTimestamp(2, new Timestamp(parseTime(row.get(0))));
+                    statement.setBytes(3, metric.valueToBytes(parseDouble(row.get(1))));
+                    statement.execute();
+                }
+            }
+        } else {
+            String sql = "MERGE INTO point_" + granularity + " (\"metric_id\", \"timestamp\", \"aggregation\", \"value\") VALUES (?, ?, ?, ?)";
+
+            for (List<String> row : rows) {
+                try (Connection connection = pugTSDB.getDataSource().getConnection();
+                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, metric.getId());
+                    statement.setTimestamp(2, new Timestamp(parseTime(row.get(0))));
+                    statement.setString(3, row.get(1));
+                    statement.setBytes(4, metric.valueToBytes(parseDouble(row.get(2))));
+                    statement.execute();
+                }
+            }
+        }
+    }
+
+    @When("^select points for metric \"([^\"]*)\" ID aggregated as \"([^\"]*)\" between \"([^\"]*)\" and \"([^\"]*)\"$")
+    public void selectPointsForMetricIDAggregatedAsBetweenAnd(String metricName, String aggregationName, String fromTimeString, String toTimeString) throws Throwable {
+        Interval interval = Interval.until(parseTime(toTimeString)).from(parseTime(fromTimeString));
+        Metric<Double> metric = new DoubleMetric(metricName, emptyMap());
+        actualMetricPoints = pugTSDB.selectMetricPoints(metric, aggregationName, granularity, interval);
+    }
+
+    @When("^select points for metric \"([^\"]*)\" ID between \"([^\"]*)\" and \"([^\"]*)\"$")
+    public void selectPointsForMetricIDBetweenAnd(String metricName, String fromTimeString, String toTimeString) throws Throwable {
+        Interval interval = Interval.until(parseTime(toTimeString)).from(parseTime(fromTimeString));
+        Metric<Double> metric = new DoubleMetric(metricName, emptyMap());
+        actualMetricPoints = granularity == null
+                             ? pugTSDB.selectMetricPoints(metric, interval)
+                             : pugTSDB.selectMetricPoints(metric, granularity, interval);
+    }
+
+    @Then("^the select returns no metric points$")
+    public void theSelectReturnsNoMetricPoints() throws Throwable {
+        assertNull(actualMetricPoints);
+    }
+
+    @Then("^the select returns a metric points for \"([^\"]*)\"$")
+    public void theSelectReturnsAMetricPointsFor(String expectedMetricName) throws Throwable {
+        assertNotNull(actualMetricPoints);
+        assertNotNull(actualMetricPoints.getMetric());
+        assertEquals(expectedMetricName, actualMetricPoints.getMetric().getName());
+    }
+
+    @Then("^the metric points contains (\\d+) raw points$")
+    public void theMetricPointsContainsRawPoints(int expectedPoints) throws Throwable {
+        theMetricPointsContainsPointsAggregatedAs(expectedPoints, null);
+    }
+
+    @Then("^the metric points contains (\\d+) points aggregated as \"([^\"]*)\"$")
+    public void theMetricPointsContainsPointsAggregatedAs(int expectedPoints, String aggregationName) throws Throwable {
+        Map<String, Map<Long, Object>> points = actualMetricPoints.getPoints();
+        assertTrue(points.containsKey(aggregationName));
+        assertEquals(expectedPoints, points.get(aggregationName).size());
+    }
+
+    @Then("^the metric points contains a raw point on \"([^\"]*)\" with value (\\d+)$")
+    public void theMetricPointsContainsARawPointOnWithValue(String timestampString, Double expectedValue) throws Throwable {
+        theMetricPointsContainsAPointAggregatedAsOnWithValue(null, timestampString, expectedValue);
+    }
+
+    @Then("^the metric points contains a point aggregated as \"([^\"]*)\" on \"([^\"]*)\" with value (\\d+)$")
+    public void theMetricPointsContainsAPointAggregatedAsOnWithValue(String aggregationName, String timestampString, Double expectedValue) throws Throwable {
+        Map<String, Map<Long, Object>> points = actualMetricPoints.getPoints();
+        assertTrue(points.containsKey(aggregationName));
+        assertEquals(expectedValue, points.get(aggregationName).get(parseTime(timestampString)));
+    }
+
+    private long parseTime(String string) throws ParseException {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:SS").parse(string).getTime();
+    }
+}
