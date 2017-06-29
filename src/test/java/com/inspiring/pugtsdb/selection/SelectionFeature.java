@@ -8,7 +8,10 @@ import org.junit.runner.RunWith;
 @CucumberOptions(features = {
         "classpath:feature/SelectionByIdAggregationAndTimestamp.feature",
         "classpath:feature/SelectionByIdAndTimestamp.feature",
-        "classpath:feature/SelectionOfRawPointsByIdAndTimestamp.feature"
+        "classpath:feature/SelectionOfRawPointsByIdAndTimestamp.feature",
+        "classpath:feature/SelectionByNameTagsAggregationAndTimestamp.feature",
+        "classpath:feature/SelectionByNameTagsAndTimestamp.feature",
+        "classpath:feature/SelectionOfRawPointsByNameTagsAndTimestamp.feature",
 })
 public class SelectionFeature {
 

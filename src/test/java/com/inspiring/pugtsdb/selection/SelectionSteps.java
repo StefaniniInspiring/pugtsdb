@@ -2,6 +2,7 @@ package com.inspiring.pugtsdb.selection;
 
 import com.inspiring.pugtsdb.PugTSDB;
 import com.inspiring.pugtsdb.bean.MetricPoints;
+import com.inspiring.pugtsdb.bean.Tag;
 import com.inspiring.pugtsdb.metric.DoubleMetric;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.Repositories;
@@ -26,6 +27,7 @@ import java.util.stream.Stream;
 
 import static java.lang.Double.parseDouble;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -39,7 +41,7 @@ public class SelectionSteps {
     private Repositories repositories;
 
     private MetricPoints actualMetricPoints;
-    private List<MetricPoints> actualMetricsPoints;
+    private List<MetricPoints<Object>> actualMetricsPoints;
 
     @Before
     public void prepare() {
@@ -82,7 +84,16 @@ public class SelectionSteps {
 
     @Given("^the points for metric \"([^\"]*)\":$")
     public void thePointsForMetric(String metricName, List<List<String>> rows) throws Throwable {
-        Metric<Double> metric = new DoubleMetric(metricName, emptyMap());
+        thePointsForMetricWithTag(metricName, null, null, rows);
+    }
+
+    @Given("^the points for metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\":$")
+    public void thePointsForMetricWithTag(String metricName, String tagName, String tagValue, List<List<String>> rows) throws Throwable {
+        Map<String, String> tags = tagName != null
+                                   ? singletonMap(tagName, tagValue)
+                                   : emptyMap();
+
+        Metric<Double> metric = new DoubleMetric(metricName, tags);
 
         if (repositories.getMetricRepository().notExistsMetric(metric.getId())) {
             repositories.getMetricRepository().insertMetric(metric);
@@ -125,6 +136,18 @@ public class SelectionSteps {
         actualMetricPoints = pugTSDB.selectMetricPoints(metric, aggregationName, granularity, interval);
     }
 
+    @When("^select points for metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\" aggregated as \"([^\"]*)\" between \"([^\"]*)\" and \"([^\"]*)\"$")
+    public void selectPointsForMetricWithTagAggregatedAsBetweenAnd(String metricName,
+                                                                   String tagName,
+                                                                   String tagValue,
+                                                                   String aggregationName,
+                                                                   String fromTimeString,
+                                                                   String toTimeString) throws Throwable {
+        Tag tag = Tag.of(tagName, tagValue);
+        Interval interval = Interval.until(parseTime(toTimeString)).from(parseTime(fromTimeString));
+        actualMetricsPoints = pugTSDB.selectMetricsPoints(metricName, aggregationName, granularity, interval, tag);
+    }
+
     @When("^select points for metric \"([^\"]*)\" ID between \"([^\"]*)\" and \"([^\"]*)\"$")
     public void selectPointsForMetricIDBetweenAnd(String metricName, String fromTimeString, String toTimeString) throws Throwable {
         Interval interval = Interval.until(parseTime(toTimeString)).from(parseTime(fromTimeString));
@@ -134,9 +157,24 @@ public class SelectionSteps {
                              : pugTSDB.selectMetricPoints(metric, granularity, interval);
     }
 
+    @When("^select points for metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\" between \"([^\"]*)\" and \"([^\"]*)\"$")
+    public void selectPointsForMetricWithTagBetweenAnd(String metricName, String tagName, String tagValue, String fromTimeString, String toTimeString) throws Throwable {
+        Tag tag = Tag.of(tagName, tagValue);
+        Interval interval = Interval.until(parseTime(toTimeString)).from(parseTime(fromTimeString));
+        actualMetricsPoints = granularity == null
+                              ? pugTSDB.selectMetricsPoints(metricName, interval, tag)
+                              : pugTSDB.selectMetricsPoints(metricName, granularity, interval, tag);
+    }
+
     @Then("^the select returns no metric points$")
     public void theSelectReturnsNoMetricPoints() throws Throwable {
         assertNull(actualMetricPoints);
+    }
+
+    @Then("^the select returns no metrics points$")
+    public void theSelectReturnsNoMetricsPoints() throws Throwable {
+        assertNotNull(actualMetricsPoints);
+        assertTrue(actualMetricsPoints.isEmpty());
     }
 
     @Then("^the select returns a metric points for \"([^\"]*)\"$")
@@ -144,6 +182,18 @@ public class SelectionSteps {
         assertNotNull(actualMetricPoints);
         assertNotNull(actualMetricPoints.getMetric());
         assertEquals(expectedMetricName, actualMetricPoints.getMetric().getName());
+    }
+
+    @Then("^the select returns (\\d+) metric points for \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\"$")
+    public void theSelectReturnsMetricPointsForWithTag(long expectedMetricsPointsQty, String metricName, String tagName, String tagValue) throws Throwable {
+        assertNotNull(actualMetricsPoints);
+
+        long actualMetricsPointsQty = actualMetricsPoints.stream()
+                .filter(metricPoints -> metricPoints.getMetric().getName().equals(metricName))
+                .filter(metricPoints -> metricPoints.getMetric().getTags().equals(singletonMap(tagName, tagValue)))
+                .count();
+
+        assertEquals(expectedMetricsPointsQty, actualMetricsPointsQty);
     }
 
     @Then("^the metric points contains (\\d+) raw points$")
@@ -158,6 +208,27 @@ public class SelectionSteps {
         assertEquals(expectedPoints, points.get(aggregationName).size());
     }
 
+    @Then("^the metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\" contains (\\d+) raw points$")
+    public void theMetricWithTagContainsRawPoints(String metricName, String tagName, String tagValue, int expectedPoints) throws Throwable {
+        theMetricWithTagContainsPointsAggregatedAs(metricName, tagName, tagValue, expectedPoints, null);
+    }
+
+    @Then("^the metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\" contains (\\d+) points aggregated as \"([^\"]*)\"$")
+    public void theMetricWithTagContainsPointsAggregatedAs(String metricName,
+                                                           String tagName,
+                                                           String tagValue,
+                                                           int expectedPoints,
+                                                           String aggregationName) throws Throwable {
+        int actualPoints = actualMetricsPoints.stream()
+                .filter(metricPoints -> metricPoints.getMetric().getName().equals(metricName))
+                .filter(metricPoints -> metricPoints.getMetric().getTags().equals(singletonMap(tagName, tagValue)))
+                .map(metricPoints -> metricPoints.getPoints().getOrDefault(aggregationName, emptyMap()).size())
+                .findFirst()
+                .orElse(0);
+
+        assertEquals(expectedPoints, actualPoints);
+    }
+
     @Then("^the metric points contains a raw point on \"([^\"]*)\" with value (\\d+)$")
     public void theMetricPointsContainsARawPointOnWithValue(String timestampString, Double expectedValue) throws Throwable {
         theMetricPointsContainsAPointAggregatedAsOnWithValue(null, timestampString, expectedValue);
@@ -168,6 +239,36 @@ public class SelectionSteps {
         Map<String, Map<Long, Object>> points = actualMetricPoints.getPoints();
         assertTrue(points.containsKey(aggregationName));
         assertEquals(expectedValue, points.get(aggregationName).get(parseTime(timestampString)));
+    }
+
+    @Then("^the metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\" contains a raw point on \"([^\"]*)\" with value (\\d+)$")
+    public void theMetricWithTagContainsARawPointOnWithValue(String metricName,
+                                                             String tagName,
+                                                             String tagValue,
+                                                             String timestampString,
+                                                             Double expectedValue) throws Throwable {
+        theMetricWithTagContainsAPointAggregatedAsOnWithValue(metricName, tagName, tagValue, null, timestampString, expectedValue);
+    }
+
+    @Then("^the metric \"([^\"]*)\" with tag \"([^\"]*)\" = \"([^\"]*)\" contains a point aggregated as \"([^\"]*)\" on \"([^\"]*)\" with value (\\d+)$")
+    public void theMetricWithTagContainsAPointAggregatedAsOnWithValue(String metricName,
+                                                                      String tagName,
+                                                                      String tagValue,
+                                                                      String aggregationName,
+                                                                      String timestampString,
+                                                                      Double expectedValue) throws Throwable {
+        Map<Long, Object> points = actualMetricsPoints.stream()
+                .filter(metricPoints -> metricPoints.getMetric().getName().equals(metricName))
+                .filter(metricPoints -> metricPoints.getMetric().getTags().equals(singletonMap(tagName, tagValue)))
+                .map(metricPoints -> metricPoints.getPoints().get(aggregationName))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(points);
+
+        Object actualValue = points.get(parseTime(timestampString));
+
+        assertEquals(expectedValue, actualValue);
     }
 
     private long parseTime(String string) throws ParseException {

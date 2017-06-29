@@ -14,10 +14,10 @@ import org.junit.runners.Suite.SuiteClasses;
 @SuiteClasses({
         PugCreationFeature.class,
         UpsertionFeature.class,
+        SelectionFeature.class,
         RollUpAggregationFeature.class,
         RollUpGranularityFeature.class,
         RollUpPurgeFeature.class,
-        SelectionFeature.class
 })
 public class PugSuiteTest {
 
