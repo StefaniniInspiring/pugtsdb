@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static com.inspiring.pugtsdb.util.Temporals.truncate;
@@ -45,7 +46,7 @@ public class RollUpListenerSteps {
     private Repositories repositories;
 
     private Instant executionInstant;
-    private RollUpEvent actualEvent;
+    private AtomicReference<RollUpEvent> actualEvent = new AtomicReference<>();
 
     @Before
     public void prepare() {
@@ -108,7 +109,7 @@ public class RollUpListenerSteps {
 
     @Given("^a rollup listener$")
     public void aRollupListener() throws Throwable {
-        listener = event -> actualEvent = event;
+        listener = event -> actualEvent.set(event);
     }
 
     @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" plus (\\d+) \"([^\"]*)\" with a double (\\d+)$")
@@ -125,36 +126,42 @@ public class RollUpListenerSteps {
         rollUp.setListener(listener);
     }
 
+    @When("^the rollup executes$")
+    public void theRollupExecutes() throws Throwable {
+        rollUp.run();
+        Thread.sleep(100);
+    }
+
     @Then("^the listener wont be called$")
     public void theListenerWontBeCalled() throws Throwable {
-        assertNull(actualEvent);
+        assertNull(actualEvent.get());
     }
 
     @Then("^the listener will be called$")
     public void theListenerWillBeCalled() throws Throwable {
-        assertNotNull(actualEvent);
+        assertNotNull(actualEvent.get());
     }
 
     @Then("^the event will have a metric name of \"([^\"]*)\"$")
     public void theEventWillHaveAMetricNameOf(String expectedMetricName) throws Throwable {
-        assertEquals(expectedMetricName, actualEvent.getMetricName());
+        assertEquals(expectedMetricName, actualEvent.get().getMetricName());
     }
 
     @Then("^the event will have a aggregation name of \"([^\"]*)\"$")
     public void theEventWillHaveAAggregationNameOf(String expectedAggregationName) throws Throwable {
-        assertEquals(expectedAggregationName, actualEvent.getAggregationName());
+        assertEquals(expectedAggregationName, actualEvent.get().getAggregationName());
     }
 
     @Then("^the event will have a source granularity of (\\d+) \"([^\"]*)\"$")
     public void theEventWillHaveASourceGranularityOf(long granularityValue, String granularityUnit) throws Throwable {
         Granularity expectedGranularity = granularityOf(granularityValue, granularityUnit);
-        assertEquals(expectedGranularity, actualEvent.getSourceGranularity());
+        assertEquals(expectedGranularity, actualEvent.get().getSourceGranularity());
     }
 
     @Then("^the event will have a target granularity of (\\d+) \"([^\"]*)\"$")
     public void theEventWillHaveATargetGranularityOf(long granularityValue, String granularityUnit) throws Throwable {
         Granularity expectedGranularity = granularityOf(granularityValue, granularityUnit);
-        assertEquals(expectedGranularity, actualEvent.getTargetGranularity());
+        assertEquals(expectedGranularity, actualEvent.get().getTargetGranularity());
     }
 
     private Timestamp resolveTimestamp(String timestampState, String timestampUnitString, long amountToAddValue, String amountToAddUnit) {
