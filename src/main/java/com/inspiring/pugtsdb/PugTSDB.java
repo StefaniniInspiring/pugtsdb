@@ -198,8 +198,8 @@ public class PugTSDB implements Closeable {
 
     @Override
     public void close() {
-        dataSource.dispose();
         rollUpScheduler.stop();
+        dataSource.dispose();
     }
 
     private PugConnection getConnection() {
