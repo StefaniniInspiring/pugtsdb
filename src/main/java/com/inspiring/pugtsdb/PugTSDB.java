@@ -188,12 +188,12 @@ public class PugTSDB implements Closeable {
         rollUpScheduler.registerRollUps(metricName, aggregation, retention);
     }
 
-    public void addRollUpListener(String metricName, Aggregation<?> aggregation, Granularity granularity, RollUpListener listener) {
-        rollUpScheduler.addRollUpListener(metricName, aggregation, granularity, listener);
+    public void addRollUpListener(String metricName, String aggregationName, Granularity granularity, RollUpListener listener) {
+        rollUpScheduler.addRollUpListener(metricName, aggregationName, granularity, listener);
     }
 
-    public RollUpListener removeRollUpListener(String metricName, Aggregation<?> aggregation, Granularity granularity) {
-        return rollUpScheduler.removeRollUpListener(metricName, aggregation, granularity);
+    public RollUpListener removeRollUpListener(String metricName, String aggregationName, Granularity granularity) {
+        return rollUpScheduler.removeRollUpListener(metricName, aggregationName, granularity);
     }
 
     @Override

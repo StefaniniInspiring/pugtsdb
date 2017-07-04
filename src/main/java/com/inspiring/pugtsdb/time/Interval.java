@@ -3,6 +3,7 @@ package com.inspiring.pugtsdb.time;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+import static com.inspiring.pugtsdb.util.Temporals.truncate;
 import static java.lang.System.currentTimeMillis;
 
 public class Interval {
@@ -77,6 +78,10 @@ public class Interval {
             return from(currentTimeMillis());
         }
 
+        public Interval fromNowTruncatedTo(ChronoUnit unit) {
+            return from(truncate(currentTimeMillis(), unit));
+        }
+
         public Interval fromYearsAgo(long amount) {
             return fromSecondsAgo(toSeconds(amount, ChronoUnit.YEARS));
         }
@@ -106,10 +111,14 @@ public class Interval {
         }
 
         public Interval from(long time) {
-            long end = byDuration
-                       ? Instant.ofEpochMilli(time).minusSeconds(endTimeOrDuration).toEpochMilli()
-                       : endTimeOrDuration;
-            return new Interval(time, end);
+            if (byDuration) {
+                long start = Instant.ofEpochMilli(time).minusSeconds(endTimeOrDuration).toEpochMilli();
+                long end = time;
+
+                return new Interval(start, end);
+            }
+
+            return new Interval(time, endTimeOrDuration);
         }
     }
 }

@@ -87,25 +87,25 @@ public class RollUpScheduler {
         }
     }
 
-    public void addRollUpListener(String metricName, Aggregation<?> aggregation, Granularity granularity, RollUpListener listener) {
+    public void addRollUpListener(String metricName, String aggregationName, Granularity granularity, RollUpListener listener) {
         scheduledRollUps.values()
                 .stream()
                 .flatMap(List::stream)
                 .map(ScheduledRollUp::getRollUp)
                 .filter(rollUp -> rollUp.getMetricName().equals(metricName))
-                .filter(rollUp -> rollUp.getAggregation().getName().equals(aggregation.getName()))
+                .filter(rollUp -> rollUp.getAggregation().getName().equals(aggregationName))
                 .filter(rollUp -> rollUp.getTargetGranularity() == granularity)
                 .findFirst()
                 .ifPresent(rollUp -> rollUp.setListener(listener));
     }
 
-    public RollUpListener removeRollUpListener(String metricName, Aggregation<?> aggregation, Granularity granularity) {
+    public RollUpListener removeRollUpListener(String metricName, String aggregationName, Granularity granularity) {
         RollUp<?> listenedRollUp = scheduledRollUps.values()
                 .stream()
                 .flatMap(List::stream)
                 .map(ScheduledRollUp::getRollUp)
                 .filter(rollUp -> rollUp.getMetricName().equals(metricName))
-                .filter(rollUp -> rollUp.getAggregation().getName().equals(aggregation.getName()))
+                .filter(rollUp -> rollUp.getAggregation().getName().equals(aggregationName))
                 .filter(rollUp -> rollUp.getTargetGranularity() == granularity)
                 .findFirst()
                 .orElse(null);
