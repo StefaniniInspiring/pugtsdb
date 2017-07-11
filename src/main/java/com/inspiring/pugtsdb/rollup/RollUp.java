@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.inspiring.pugtsdb.util.Collections.isNotEmpty;
 import static com.inspiring.pugtsdb.util.Temporals.truncate;
@@ -23,6 +25,8 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 public class RollUp<T> implements Runnable {
+
+    private static final Logger log = LoggerFactory.getLogger(RollUp.class);
 
     private final String metricName;
     private final Aggregation<T> aggregation;
@@ -86,12 +90,18 @@ public class RollUp<T> implements Runnable {
     @Override
     public void run() {
         long nextTimestamp = truncate(Instant.now(), targetGranularity.getUnit());
+        Data data;
 
-        Data data = fetchSourceData(nextTimestamp);
-        aggregateData(data);
-        saveData(data);
-
-        lastTimestamp = nextTimestamp;
+        try {
+            data = fetchSourceData(nextTimestamp);
+            aggregateData(data);
+            saveData(data);
+        } catch (Exception e) {
+            log.error("Cannot perform {}", this, e);
+            return;
+        } finally {
+            lastTimestamp = nextTimestamp;
+        }
 
         purger.run();
 
@@ -151,6 +161,7 @@ public class RollUp<T> implements Runnable {
             pointRepository.getConnection().commit();
         } catch (Exception e) {
             pointRepository.getConnection().rollback();
+            throw e;
         } finally {
             pointRepository.getConnection().close();
         }
@@ -160,7 +171,7 @@ public class RollUp<T> implements Runnable {
     public String toString() {
         return "RollUp{" +
                 "metricName='" + metricName + '\'' +
-                ", aggregation=" + aggregation +
+                ", aggregation=" + aggregation.getName() +
                 ", sourceGranularity=" + sourceGranularity +
                 ", targetGranularity=" + targetGranularity +
                 '}';

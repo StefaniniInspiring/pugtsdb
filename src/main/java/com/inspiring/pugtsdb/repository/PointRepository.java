@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
 
-import static java.util.Collections.emptyMap;
 import static java.util.stream.IntStream.range;
 
 @SuppressWarnings({"SqlNoDataSourceInspection", "Duplicates"})
@@ -122,13 +121,13 @@ public class PointRepository extends Repository {
             + " AND    t{0}.\"tag_name\" = ?              "
             + " AND    t{0}.\"tag_value\" = ?             ";
 
-    private static final String SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP = ""
-            + " GROUP BY metric.\"id\",                   "
+    private static final String SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP = ""
+            + " ORDER BY metric.\"id\",                   "
             + "          point.\"aggregation\",           "
             + "          point.\"timestamp\"               ";
 
-    private static final String SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP = ""
-            + " GROUP BY metric.\"id\",                    "
+    private static final String SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP = ""
+            + " ORDER BY metric.\"id\",                    "
             + "          point.\"timestamp\"               ";
 
     private static final String SQL_MERGE_RAW_POINT = ""
@@ -191,14 +190,15 @@ public class PointRepository extends Repository {
                                       metricName,
                                       aggregation,
                                       granularity,
-                                      sql);
+                                      sql,
+                                      e);
         }
 
         return max;
     }
 
     public <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(int metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
-        String sql = SQL_SELECT_RAW_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP + SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP;
+        String sql = SQL_SELECT_RAW_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP + SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, metricId);
@@ -218,7 +218,7 @@ public class PointRepository extends Repository {
     }
 
     public <T> List<MetricPoints<T>> selectRawMetricsPointsByNameBetweenTimestamp(String metricName, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
-        String sql = SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP + SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP;
+        String sql = SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP + SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, metricName);
@@ -226,7 +226,7 @@ public class PointRepository extends Repository {
             statement.setTimestamp(3, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricsPoints(resultSet, false);
+            return buildMetricsPoints(resultSet);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points between %s and %s with statement %s",
                                       metricName,
@@ -243,7 +243,7 @@ public class PointRepository extends Repository {
                                                                                          long toExclusiveTimestamp) {
         StringBuilder sql = new StringBuilder(SQL_SELECT_RAW_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP);
         range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
-        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP);
+        sql.append(SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
             statement.setString(1, metricName);
@@ -259,7 +259,7 @@ public class PointRepository extends Repository {
 
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricsPoints(resultSet, true);
+            return buildMetricsPoints(resultSet);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points between %s and %s with tags %s and statement %s",
                                       metricName,
@@ -276,7 +276,7 @@ public class PointRepository extends Repository {
                                                                                     Granularity granularity,
                                                                                     long fromInclusiveTimestamp,
                                                                                     long toExclusiveTimestamp) {
-        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_TIMESTAMP;
+        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, metricId);
@@ -302,7 +302,7 @@ public class PointRepository extends Repository {
                                                                       Granularity granularity,
                                                                       long fromInclusiveTimestamp,
                                                                       long toExclusiveTimestamp) {
-        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP, granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
+        String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, metricId);
@@ -328,7 +328,7 @@ public class PointRepository extends Repository {
                                                                                              long fromInclusiveTimestamp,
                                                                                              long toExclusiveTimestamp) {
         String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP,
-                                   granularity) + SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
+                                   granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, metricName);
@@ -337,7 +337,7 @@ public class PointRepository extends Repository {
             statement.setTimestamp(4, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricsPoints(resultSet, false);
+            return buildMetricsPoints(resultSet);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points aggregated as %s between %s and %s with granularity %s and statement %s",
                                       metricName,
@@ -358,7 +358,7 @@ public class PointRepository extends Repository {
                                                                                                     long toExclusiveTimestamp) {
         StringBuilder sql = new StringBuilder(String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity));
         range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
-        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP);
+        sql.append(SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
             statement.setString(1, metricName);
@@ -375,7 +375,7 @@ public class PointRepository extends Repository {
 
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricsPoints(resultSet, true);
+            return buildMetricsPoints(resultSet);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points aggregated as %s between %s and %s with granularity %s tags %s and statement %s",
                                       metricName,
@@ -396,7 +396,7 @@ public class PointRepository extends Repository {
                                                                                       long toExclusiveTimestamp) {
         StringBuilder sql = new StringBuilder(String.format(SQL_SELECT_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP, granularity));
         range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
-        sql.append(SQL_GROUP_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP);
+        sql.append(SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP);
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
             statement.setString(1, metricName);
@@ -412,7 +412,7 @@ public class PointRepository extends Repository {
 
             ResultSet resultSet = statement.executeQuery();
 
-            return buildMetricsPoints(resultSet, true);
+            return buildMetricsPoints(resultSet);
         } catch (Exception e) {
             throw new PugSQLException("Cannot select metric %s points between %s and %s with granularity %s tags %s and statement %s",
                                       metricName,
@@ -492,7 +492,7 @@ public class PointRepository extends Repository {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> List<MetricPoints<T>> buildMetricsPoints(ResultSet resultSet, boolean fetchTags) throws Exception {
+    private <T> List<MetricPoints<T>> buildMetricsPoints(ResultSet resultSet) throws Exception {
         List<MetricPoints<T>> metricsPoints = new ArrayList<>();
         MetricPoints metricPoints = null;
         String aggregation;
@@ -503,9 +503,7 @@ public class PointRepository extends Repository {
             String type = resultSet.getString("type");
             Long timestamp = resultSet.getTimestamp("timestamp").getTime();
             byte[] bytes = resultSet.getBytes("value");
-            Map<String, String> tags = fetchTags
-                                       ? tagRepository.selectTagsByMetricId(id)
-                                       : emptyMap();
+            Map<String, String> tags = tagRepository.selectTagsByMetricId(id);
 
             try {
                 aggregation = resultSet.getString("aggregation");

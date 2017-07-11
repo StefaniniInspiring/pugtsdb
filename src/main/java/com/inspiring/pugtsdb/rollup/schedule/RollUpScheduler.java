@@ -30,7 +30,7 @@ public class RollUpScheduler {
     private static final int INITIAL_DELAY = 5;
 
     private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
-    private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new HashMap<>();
+    private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new TreeMap<>(comparing(Pattern::pattern));
     private final Map<String, List<ScheduledRollUp<?>>> scheduledRollUps = new HashMap<>();
     private final Repositories repositories;
 

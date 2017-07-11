@@ -22,4 +22,11 @@ public abstract class Aggregation<T> {
     }
 
     public abstract T aggregate(List<T> values);
+
+    @Override
+    public String toString() {
+        return "Aggregation{" +
+                "name='" + name + '\'' +
+                '}';
+    }
 }
