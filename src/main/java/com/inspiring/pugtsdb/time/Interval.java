@@ -36,6 +36,10 @@ public class Interval {
         return new Builder(time, false);
     }
 
+    public static Builder ofLast(long amount, ChronoUnit unit) {
+        return ofLastSeconds(toSeconds(amount, unit));
+    }
+
     public static Builder ofLast(Granularity granularity) {
         return ofLastSeconds(toSeconds(granularity.getValue(), granularity.getUnit()));
     }
