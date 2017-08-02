@@ -31,6 +31,15 @@ public class PointRepository extends Repository {
             + " AND    metric.\"name\" = ?                 "
             + " AND    point.\"aggregation\" = ?           ";
 
+    private static final String SQL_SELECT_AGGREGATIONS_BY_METRIC_NAME = ""
+            + " SELECT DISTINCT                        "
+            + "        point.\"aggregation\"           "
+            + " FROM   point_%s AS point               "
+            + " INNER JOIN metric                      "
+            + " ON metric.\"id\" = point.\"metric_id\" "
+            + " AND metric.\"name\" = ?                "
+            + " ORDER BY point.\"aggregation\"         ";
+
     private static final String SQL_SELECT_RAW_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP = ""
             + " SELECT metric.\"id\",                      "
             + "        metric.\"name\",                    "
@@ -71,6 +80,19 @@ public class PointRepository extends Repository {
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             ";
 
+    private static final String SQL_SELECT_TOP_METRIC_POINTS_BY_ID = ""
+            + " SELECT TOP ?                               "
+            + "        metric.\"id\",                      "
+            + "        metric.\"name\",                    "
+            + "        metric.\"type\",                    "
+            + "        point.\"timestamp\",                "
+            + "        point.\"aggregation\",              "
+            + "        point.\"value\"                     "
+            + " FROM   metric                              "
+            + " INNER JOIN point_%s AS point               "
+            + " ON     metric.\"id\" = point.\"metric_id\" "
+            + " AND    metric.\"id\" = ?                   ";
+
     private static final String SQL_SELECT_METRIC_POINTS_BY_ID_AND_AGGREGATION_BETWEEN_TIMESTAMP = ""
             + " SELECT metric.\"id\",                      "
             + "        metric.\"name\",                    "
@@ -86,6 +108,20 @@ public class PointRepository extends Repository {
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             ";
 
+    private static final String SQL_SELECT_TOP_METRIC_POINTS_BY_ID_AND_AGGREGATION = ""
+            + " SELECT TOP ?                               "
+            + "        metric.\"id\",                      "
+            + "        metric.\"name\",                    "
+            + "        metric.\"type\",                    "
+            + "        point.\"timestamp\",                "
+            + "        point.\"aggregation\",              "
+            + "        point.\"value\"                     "
+            + " FROM   metric                              "
+            + " INNER JOIN point_%s AS point               "
+            + " ON     metric.\"id\" = point.\"metric_id\" "
+            + " AND    metric.\"id\" = ?                   "
+            + " AND    point.\"aggregation\" = ?           ";
+
     private static final String SQL_SELECT_METRIC_POINTS_BY_NAME_BETWEEN_TIMESTAMP = ""
             + " SELECT metric.\"id\",                      "
             + "        metric.\"name\",                    "
@@ -99,6 +135,19 @@ public class PointRepository extends Repository {
             + " AND    metric.\"name\" = ?                 "
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             ";
+
+    private static final String SQL_SELECT_TOP_METRIC_POINTS_BY_NAME = ""
+            + " SELECT TOP ?                               "
+            + "        metric.\"id\",                      "
+            + "        metric.\"name\",                    "
+            + "        metric.\"type\",                    "
+            + "        point.\"timestamp\",                "
+            + "        point.\"aggregation\",              "
+            + "        point.\"value\"                     "
+            + " FROM   metric                              "
+            + " INNER JOIN point_%s AS point               "
+            + " ON     metric.\"id\" = point.\"metric_id\" "
+            + " AND    metric.\"name\" = ?                 ";
 
     private static final String SQL_SELECT_METRIC_POINTS_BY_NAME_AND_AGGREGATION_BETWEEN_TIMESTAMP = ""
             + " SELECT metric.\"id\",                      "
@@ -115,6 +164,20 @@ public class PointRepository extends Repository {
             + " AND    point.\"timestamp\" >= ?            "
             + " AND    point.\"timestamp\" < ?             ";
 
+    private static final String SQL_SELECT_TOP_METRIC_POINTS_BY_NAME_AND_AGGREGATION = ""
+            + " SELECT TOP ?                               "
+            + "        metric.\"id\",                      "
+            + "        metric.\"name\",                    "
+            + "        metric.\"type\",                    "
+            + "        point.\"timestamp\",                "
+            + "        point.\"aggregation\",              "
+            + "        point.\"value\"                     "
+            + " FROM   metric                              "
+            + " INNER JOIN point_%s AS point               "
+            + " ON     metric.\"id\" = point.\"metric_id\" "
+            + " AND    metric.\"name\" = ?                 "
+            + " AND    point.\"aggregation\" = ?           ";
+
     private static final String SQL_INNER_JOIN_METRIC_TAG = ""
             + " INNER JOIN metric_tag AS t{0}             "
             + " ON     metric.\"id\" = t{0}.\"metric_id\" "
@@ -124,11 +187,20 @@ public class PointRepository extends Repository {
     private static final String SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP = ""
             + " ORDER BY metric.\"id\",                   "
             + "          point.\"aggregation\",           "
-            + "          point.\"timestamp\"               ";
+            + "          point.\"timestamp\"              ";
+
+    private static final String SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP_DESC = ""
+            + " ORDER BY metric.\"id\",                   "
+            + "          point.\"aggregation\",           "
+            + "          point.\"timestamp\" DESC         ";
 
     private static final String SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP = ""
             + " ORDER BY metric.\"id\",                    "
             + "          point.\"timestamp\"               ";
+
+    private static final String SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP_DESC = ""
+            + " ORDER BY metric.\"id\",                    "
+            + "          point.\"timestamp\" DESC          ";
 
     private static final String SQL_MERGE_RAW_POINT = ""
             + " MERGE               "
@@ -195,6 +267,24 @@ public class PointRepository extends Repository {
         }
 
         return max;
+    }
+
+    public List<String> selectAggregationNames(String metricName, Granularity granularity) {
+        String sql = String.format(SQL_SELECT_AGGREGATIONS_BY_METRIC_NAME, granularity);
+        List<String> names = new ArrayList<>();
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, metricName);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                names.add(resultSet.getString("aggregation"));
+            }
+        } catch (SQLException e) {
+            throw new PugSQLException("Cannot select aggregation names for metric %s with granularity %s and statement", metricName, granularity, sql, e);
+        }
+
+        return names;
     }
 
     public <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(int metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
@@ -298,6 +388,30 @@ public class PointRepository extends Repository {
         }
     }
 
+    public <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(int metricId,
+                                                                        String aggregation,
+                                                                        Granularity granularity,
+                                                                        int qty) {
+        String sql = String.format(SQL_SELECT_TOP_METRIC_POINTS_BY_ID_AND_AGGREGATION, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP_DESC;
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setInt(1, qty);
+            statement.setInt(2, metricId);
+            statement.setString(3, aggregation);
+            ResultSet resultSet = statement.executeQuery();
+
+            return buildMetricPoints(resultSet);
+        } catch (Exception e) {
+            throw new PugSQLException("Cannot select metric %s last %s points aggregated as %s with granularity %s and statement %s",
+                                      metricId,
+                                      qty,
+                                      aggregation,
+                                      granularity,
+                                      sql,
+                                      e);
+        }
+    }
+
     public <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(int metricId,
                                                                       Granularity granularity,
                                                                       long fromInclusiveTimestamp,
@@ -316,6 +430,27 @@ public class PointRepository extends Repository {
                                       metricId,
                                       fromInclusiveTimestamp,
                                       toExclusiveTimestamp,
+                                      granularity,
+                                      sql,
+                                      e);
+        }
+    }
+
+    public <T> MetricPoints<T> selectLastMetricPointsById(int metricId,
+                                                          Granularity granularity,
+                                                          int qty) {
+        String sql = String.format(SQL_SELECT_TOP_METRIC_POINTS_BY_ID, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP_DESC;
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setInt(1, qty);
+            statement.setInt(2, metricId);
+            ResultSet resultSet = statement.executeQuery();
+
+            return buildMetricPoints(resultSet);
+        } catch (Exception e) {
+            throw new PugSQLException("Cannot select metric %s last points with granularity %s and statement %s",
+                                      metricId,
+                                      qty,
                                       granularity,
                                       sql,
                                       e);
@@ -344,6 +479,30 @@ public class PointRepository extends Repository {
                                       aggregation,
                                       fromInclusiveTimestamp,
                                       toExclusiveTimestamp,
+                                      granularity,
+                                      sql,
+                                      e);
+        }
+    }
+
+    public <T> List<MetricPoints<T>> selectLastMetricsPointsByNameAndAggregation(String metricName,
+                                                                                 String aggregation,
+                                                                                 Granularity granularity,
+                                                                                 int qty) {
+        String sql = String.format(SQL_SELECT_TOP_METRIC_POINTS_BY_NAME_AND_AGGREGATION, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP_DESC;
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setInt(1, qty);
+            statement.setString(2, metricName);
+            statement.setString(3, aggregation);
+            ResultSet resultSet = statement.executeQuery();
+
+            return buildMetricsPoints(resultSet);
+        } catch (Exception e) {
+            throw new PugSQLException("Cannot select metric %s last %s points aggregated as %s with granularity %s and statement %s",
+                                      metricName,
+                                      qty,
+                                      aggregation,
                                       granularity,
                                       sql,
                                       e);
@@ -389,6 +548,42 @@ public class PointRepository extends Repository {
         }
     }
 
+    public <T> List<MetricPoints<T>> selectLastMetricsPointsByNameAndAggregationAndTags(String metricName,
+                                                                                        String aggregation,
+                                                                                        Granularity granularity,
+                                                                                        Map<String, String> tags,
+                                                                                        int qty) {
+        StringBuilder sql = new StringBuilder(String.format(SQL_SELECT_TOP_METRIC_POINTS_BY_NAME_AND_AGGREGATION, granularity));
+        range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
+        sql.append(SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP_DESC);
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
+            statement.setInt(1, qty);
+            statement.setString(2, metricName);
+            statement.setString(3, aggregation);
+
+            int i = 4;
+
+            for (Entry<String, String> tag : tags.entrySet()) {
+                statement.setString(i++, tag.getKey());
+                statement.setString(i++, tag.getValue());
+            }
+
+            ResultSet resultSet = statement.executeQuery();
+
+            return buildMetricsPoints(resultSet);
+        } catch (Exception e) {
+            throw new PugSQLException("Cannot select metric %s last %s points aggregated as %s with granularity %s tags %s and statement %s",
+                                      metricName,
+                                      qty,
+                                      aggregation,
+                                      granularity,
+                                      tags,
+                                      sql.toString(),
+                                      e);
+        }
+    }
+
     public <T> List<MetricPoints<T>> selectMetricsPointsByNameAndTagsBetweenTimestamp(String metricName,
                                                                                       Granularity granularity,
                                                                                       Map<String, String> tags,
@@ -418,6 +613,39 @@ public class PointRepository extends Repository {
                                       metricName,
                                       fromInclusiveTimestamp,
                                       toExclusiveTimestamp,
+                                      granularity,
+                                      tags,
+                                      sql.toString(),
+                                      e);
+        }
+    }
+
+    public <T> List<MetricPoints<T>> selectLastMetricsPointsByNameAndTags(String metricName,
+                                                                          Granularity granularity,
+                                                                          Map<String, String> tags,
+                                                                          int qty) {
+        StringBuilder sql = new StringBuilder(String.format(SQL_SELECT_TOP_METRIC_POINTS_BY_NAME, granularity));
+        range(0, tags.size()).forEach(i -> sql.append(MessageFormat.format(SQL_INNER_JOIN_METRIC_TAG, i)));
+        sql.append(SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP_DESC);
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
+            statement.setInt(1, qty);
+            statement.setString(2, metricName);
+
+            int i = 3;
+
+            for (Entry<String, String> tag : tags.entrySet()) {
+                statement.setString(i++, tag.getKey());
+                statement.setString(i++, tag.getValue());
+            }
+
+            ResultSet resultSet = statement.executeQuery();
+
+            return buildMetricsPoints(resultSet);
+        } catch (Exception e) {
+            throw new PugSQLException("Cannot select metric %s last %s points with granularity %s tags %s and statement %s",
+                                      metricName,
+                                      qty,
                                       granularity,
                                       tags,
                                       sql.toString(),

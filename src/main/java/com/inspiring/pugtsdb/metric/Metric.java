@@ -1,8 +1,8 @@
 package com.inspiring.pugtsdb.metric;
 
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static com.inspiring.pugtsdb.util.MurmurHash3.murmurhash3_x86_32;
 import static com.inspiring.pugtsdb.util.Strings.isBlank;
@@ -20,9 +20,9 @@ public abstract class Metric<T> {
             throw new PugIllegalArgumentException("Metric name cannot be blank");
         }
 
-        this.tags = tags != null ? unmodifiableMap(new HashMap<>(tags)) : emptyMap();
+        this.tags = tags != null ? unmodifiableMap(new TreeMap<>(tags)) : emptyMap();
         this.name = name;
-        String hashString = name + ":" + this.tags;
+        String hashString = name + ":" + this.tags.toString();
         this.id = murmurhash3_x86_32(hashString, 0, hashString.length(), hashString.length());
     }
 

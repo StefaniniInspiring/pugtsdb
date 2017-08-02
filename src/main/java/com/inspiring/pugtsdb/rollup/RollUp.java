@@ -7,6 +7,7 @@ import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpEvent;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
 import com.inspiring.pugtsdb.rollup.purge.AggregatedPointPurger;
+import com.inspiring.pugtsdb.rollup.purge.RawPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
 import java.time.Instant;
@@ -34,8 +35,9 @@ public class RollUp<T> implements Runnable {
     private final Granularity targetGranularity;
     private final PointRepository pointRepository;
     private final AggregatedPointPurger purger;
+    private final RawPointPurger rawPurger;
 
-    private RollUpListener listener = null;
+    private RollUpListener<T> listener = null;
     private Long lastTimestamp = null;
 
     public RollUp(String metricName,
@@ -50,6 +52,7 @@ public class RollUp<T> implements Runnable {
         this.targetGranularity = targetGranularity;
         this.pointRepository = repositories.getPointRepository();
         this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
+        this.rawPurger = sourceGranularity == null ? null : new RawPointPurger(pointRepository, Retention.of(1, targetGranularity.getUnit()));
 
         lastTimestamp = pointRepository.selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
@@ -83,7 +86,7 @@ public class RollUp<T> implements Runnable {
         return listener;
     }
 
-    public void setListener(RollUpListener listener) {
+    public void setListener(RollUpListener<T> listener) {
         this.listener = listener;
     }
 
@@ -91,6 +94,8 @@ public class RollUp<T> implements Runnable {
     public void run() {
         long nextTimestamp = truncate(Instant.now(), targetGranularity.getUnit());
         Data data;
+
+        log.trace("Roll up per {} running {}", targetGranularity, this);
 
         try {
             data = fetchSourceData(nextTimestamp);
@@ -105,8 +110,12 @@ public class RollUp<T> implements Runnable {
 
         purger.run();
 
+        if (rawPurger != null) {
+            rawPurger.run();
+        }
+
         if (listener != null && isNotEmpty(data.metricsPoints)) {
-            runAsync(() -> listener.onRollUp(new RollUpEvent(metricName, aggregation.getName(), sourceGranularity, targetGranularity)));
+            runAsync(() -> listener.onRollUp(new RollUpEvent<>(metricName, aggregation.getName(), sourceGranularity, targetGranularity, data.metricsPoints)));
         }
     }
 

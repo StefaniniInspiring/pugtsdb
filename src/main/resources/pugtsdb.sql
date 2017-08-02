@@ -30,6 +30,16 @@ CREATE CACHED TABLE IF NOT EXISTS point_1s (
   REFERENCES metric ("id")
 );
 
+CREATE CACHED TABLE IF NOT EXISTS point_30s (
+  "metric_id"   INTEGER   NOT NULL,
+  "timestamp"   TIMESTAMP NOT NULL,
+  "aggregation" VARCHAR   NOT NULL,
+  "value"       BINARY    NULL,
+  PRIMARY KEY ("metric_id", "timestamp", "aggregation"),
+  CONSTRAINT point_30s__metric_id_fkey FOREIGN KEY ("metric_id")
+  REFERENCES metric ("id")
+);
+
 CREATE CACHED TABLE IF NOT EXISTS point_1m (
   "metric_id"   INTEGER   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,

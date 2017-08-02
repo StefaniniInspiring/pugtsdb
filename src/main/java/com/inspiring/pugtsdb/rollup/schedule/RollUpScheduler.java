@@ -4,7 +4,6 @@ import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.RollUp;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
-import com.inspiring.pugtsdb.rollup.purge.RawPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
 import com.inspiring.pugtsdb.util.GlobPattern;
@@ -36,11 +35,10 @@ public class RollUpScheduler {
 
     public RollUpScheduler(Repositories repositories) {
         this.repositories = repositories;
-        scheduleRawPurger();
     }
 
-    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention) {
-        List<RollUpBuilder<?>> rollUpBuilders = prepareRollUps(metricName, aggregation, retention);
+    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
+        List<RollUpBuilder<?>> rollUpBuilders = prepareRollUps(metricName, aggregation, retention, granularities);
         Map<RollUp<?>, RollUpListener> rollUpListeners = new TreeMap<>(comparing((RollUp<?> rollUp) -> rollUp.getMetricName())
                                                                                .thenComparing(RollUp::getAggregation, comparing(Aggregation::getName))
                                                                                .thenComparing(RollUp::getSourceGranularity)
@@ -120,18 +118,15 @@ public class RollUpScheduler {
         return listener;
     }
 
-    private void scheduleRawPurger() {
-        RawPointPurger rawPurger = new RawPointPurger(repositories.getPointRepository());
-        long purgePeriod = rawPurger.getRetention().getValue();
-        ChronoUnit purgUnit = rawPurger.getRetention().getUnit();
-        scheduledThreadPool.scheduleAtFixedRate(rawPurger, INITIAL_DELAY, SECONDS, purgePeriod, purgUnit);
-    }
+    private List<RollUpBuilder<?>> prepareRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
+        if (granularities == null || granularities.length == 0) {
+            granularities = Granularity.values();
+        }
 
-    private List<RollUpBuilder<?>> prepareRollUps(String metricName, Aggregation<?> aggregation, Retention retention) {
         final AtomicReference<Granularity> sourceGranularity = new AtomicReference<>(null);
 
         List<RollUpBuilder<?>> curBuilders = rollUpBuildersByGlob.computeIfAbsent(GlobPattern.compile(metricName), pattern -> new ArrayList<>());
-        List<RollUpBuilder<?>> newBuilders = Stream.of(Granularity.values())
+        List<RollUpBuilder<?>> newBuilders = Stream.of(granularities)
                 .map(targetGranularity -> new RollUpBuilder<>(aggregation,
                                                               sourceGranularity.getAndSet(targetGranularity),
                                                               targetGranularity,

@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit;
 public enum Granularity {
 
     ONE_SECOND("1s", 1, ChronoUnit.SECONDS),
+    HALF_MINUTE("30s", 30, ChronoUnit.SECONDS),
     ONE_MINUTE("1m", 1, ChronoUnit.MINUTES),
     ONE_HOUR("1h", 1, ChronoUnit.HOURS),
     ONE_DAY("1d", 1, ChronoUnit.DAYS),

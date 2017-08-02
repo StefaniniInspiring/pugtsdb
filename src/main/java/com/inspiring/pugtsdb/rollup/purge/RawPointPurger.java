@@ -2,7 +2,6 @@ package com.inspiring.pugtsdb.rollup.purge;
 
 import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.time.Retention;
-import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,8 +9,8 @@ public class RawPointPurger extends PointPurger {
 
     private static final Logger log = LoggerFactory.getLogger(RawPointPurger.class);
 
-    public RawPointPurger(PointRepository pointRepository) {
-       super(pointRepository, Retention.of(5, ChronoUnit.SECONDS));
+    public RawPointPurger(PointRepository pointRepository, Retention retention) {
+        super(pointRepository, retention);
     }
 
     @Override

@@ -91,6 +91,14 @@ public class PugTSDB implements Closeable {
         return dataSource;
     }
 
+    public List<String> selectAggregationNames(String metricName, Granularity granularity) {
+        try {
+            return repositories.getPointRepository().selectAggregationNames(metricName, granularity);
+        } finally {
+            closeConnection();
+        }
+    }
+
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, String aggregation, Granularity granularity, Interval interval) {
         try {
             return repositories.getPointRepository()
@@ -100,10 +108,28 @@ public class PugTSDB implements Closeable {
         }
     }
 
+    public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, String aggregation, Granularity granularity, int quantity) {
+        try {
+            return repositories.getPointRepository()
+                    .selectLastMetricPointsByIdAndAggregation(metric.getId(), aggregation, granularity, quantity);
+        } finally {
+            closeConnection();
+        }
+    }
+
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, Granularity granularity, Interval interval) {
         try {
             return repositories.getPointRepository()
                     .selectMetricPointsByIdBetweenTimestamp(metric.getId(), granularity, interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
+    }
+
+    public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, Granularity granularity, int quantity) {
+        try {
+            return repositories.getPointRepository()
+                    .selectLastMetricPointsById(metric.getId(), granularity, quantity);
         } finally {
             closeConnection();
         }
@@ -132,10 +158,28 @@ public class PugTSDB implements Closeable {
         }
     }
 
+    public <T> List<MetricPoints<T>> selectMetricsPoints(String metricName, String aggregation, Granularity granularity, int quantity, Tag... tags) {
+        try {
+            return repositories.getPointRepository()
+                    .selectLastMetricsPointsByNameAndAggregationAndTags(metricName, aggregation, granularity, Tag.toMap(tags), quantity);
+        } finally {
+            closeConnection();
+        }
+    }
+
     public <T> List<MetricPoints<T>> selectMetricsPoints(String metricName, Granularity granularity, Interval interval, Tag... tags) {
         try {
             return repositories.getPointRepository()
                     .selectMetricsPointsByNameAndTagsBetweenTimestamp(metricName, granularity, Tag.toMap(tags), interval.getFromTime(), interval.getUntilTime());
+        } finally {
+            closeConnection();
+        }
+    }
+
+    public <T> List<MetricPoints<T>> selectMetricsPoints(String metricName, Granularity granularity, int quantity, Tag... tags) {
+        try {
+            return repositories.getPointRepository()
+                    .selectLastMetricsPointsByNameAndTags(metricName, granularity, Tag.toMap(tags), quantity);
         } finally {
             closeConnection();
         }
@@ -184,8 +228,8 @@ public class PugTSDB implements Closeable {
         upsertMetricPoint(MetricPoint.of(metric, point));
     }
 
-    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention) {
-        rollUpScheduler.registerRollUps(metricName, aggregation, retention);
+    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
+        rollUpScheduler.registerRollUps(metricName, aggregation, retention, granularities);
     }
 
     public void addRollUpListener(String metricName, String aggregationName, Granularity granularity, RollUpListener listener) {
