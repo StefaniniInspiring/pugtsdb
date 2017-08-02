@@ -99,6 +99,14 @@ public class PugTSDB implements Closeable {
         }
     }
 
+    public List<Metric<Object>> selectMetrics(String name) {
+        try {
+            return repositories.getMetricRepository().selectMetricsByName(name);
+        } finally {
+            closeConnection();
+        }
+    }
+
     public <T> MetricPoints<T> selectMetricPoints(Metric<T> metric, String aggregation, Granularity granularity, Interval interval) {
         try {
             return repositories.getPointRepository()

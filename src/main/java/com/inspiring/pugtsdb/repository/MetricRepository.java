@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
@@ -18,8 +19,15 @@ public class MetricRepository extends Repository {
             + " SELECT \"id\",    "
             + "        \"name\",  "
             + "        \"type\"   "
-            + " FROM   metric "
-            + " WHERE  \"" + "id" + "\" = ? ";
+            + " FROM   metric     "
+            + " WHERE  \"id\" = ? ";
+
+    private static final String SQL_SELECT_METRICS_BY_NAME = ""
+            + " SELECT \"id\",      "
+            + "        \"name\",    "
+            + "        \"type\"     "
+            + " FROM   metric       "
+            + " WHERE  \"name\" = ? ";
 
     private static final String SQL_SELECT_DISTINCT_METRIC_NAMES = ""
             + " SELECT DISTINCT \"name\" "
@@ -76,6 +84,23 @@ public class MetricRepository extends Repository {
         return names;
     }
 
+    public List<Metric<Object>> selectMetricsByName(String name) {
+        List<Metric<Object>> metrics = new ArrayList<>();
+
+        try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_METRICS_BY_NAME)) {
+            statement.setString(1, name);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                metrics.add(buildMetric(resultSet));
+            }
+        } catch (Exception e) {
+            throw new PugSQLException("Cannot select metrics by name %s with statement %s", name, SQL_SELECT_METRICS_BY_NAME, e);
+        }
+
+        return metrics;
+    }
+
     public void insertMetric(Metric<?> metric) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_INSERT_METRIC)) {
             statement.setInt(1, metric.getId());
@@ -107,5 +132,17 @@ public class MetricRepository extends Repository {
         } catch (SQLException e) {
             throw new PugSQLException("Cannot insert relationships between metric %s and tags %s with statement %s", metric, metric.getTags(), SQL_INSERT_METRIC_TAG, e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Metric<T> buildMetric(ResultSet resultSet) throws Exception {
+        Integer id = resultSet.getInt("id");
+        String name = resultSet.getString("name");
+        String type = resultSet.getString("type");
+        Map<String, String> tags = tagRepository.selectTagsByMetricId(id);
+
+        return (Metric<T>) Class.forName(type)
+                .getConstructor(String.class, Map.class)
+                .newInstance(name, tags);
     }
 }
