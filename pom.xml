@@ -4,7 +4,7 @@
 
     <groupId>com.github.stefaniniinspiring</groupId>
     <artifactId>pugtsdb</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.5</version>
     <name>PugTSDB</name>
     <description>A Java Embedded Time Series Data Base</description>
     <url>https://github.com/StefaniniInspiring/pugtsdb</url>
@@ -20,7 +20,7 @@
         <url>https://github.com/StefaniniInspiring/pugtsdb.git</url>
         <connection>scm:git:https://github.com/StefaniniInspiring/pugtsdb.git</connection>
         <developerConnection>scm:git:https://github.com/StefaniniInspiring/pugtsdb.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>pugtsdb-0.5</tag>
     </scm>
 
     <issueManagement>
