@@ -52,7 +52,7 @@ public class RollUp<T> implements Runnable {
         this.targetGranularity = targetGranularity;
         this.pointRepository = repositories.getPointRepository();
         this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
-        this.rawPurger = sourceGranularity == null ? null : new RawPointPurger(pointRepository, Retention.of(2, targetGranularity.getUnit()));
+        this.rawPurger = sourceGranularity == null ? new RawPointPurger(pointRepository, Retention.of(2, targetGranularity.getUnit())) : null;
 
         lastTimestamp = pointRepository.selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
