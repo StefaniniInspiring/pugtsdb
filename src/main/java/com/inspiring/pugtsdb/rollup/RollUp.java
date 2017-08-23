@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.inspiring.pugtsdb.util.Collections.isNotEmpty;
 import static com.inspiring.pugtsdb.util.Temporals.truncate;
+import static java.lang.System.currentTimeMillis;
 import static java.time.ZoneId.systemDefault;
 import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.stream.Collectors.groupingBy;
@@ -93,14 +94,23 @@ public class RollUp<T> implements Runnable {
     @Override
     public void run() {
         long nextTimestamp = truncate(Instant.now(), targetGranularity.getUnit());
+        long runTimestamp = currentTimeMillis();
         Data data;
 
         log.trace("Roll up per {} running {}", targetGranularity, this);
 
         try {
+            long fetchStartTime = currentTimeMillis();
             data = fetchSourceData(nextTimestamp);
+            log.trace("Roll up per {} fetched {}: Took={}", targetGranularity, this, currentTimeMillis() - fetchStartTime);
+
+            long aggregateStartTime = currentTimeMillis();
             aggregateData(data);
+            log.trace("Roll up per {} aggregated {}: Took={}", targetGranularity, this, currentTimeMillis() - aggregateStartTime);
+
+            long saveStartTime = currentTimeMillis();
             saveData(data);
+            log.trace("Roll up per {} saved {}: Took={}", targetGranularity, this, currentTimeMillis() - saveStartTime);
         } catch (Exception e) {
             log.error("Cannot perform {}", this, e);
             return;
@@ -117,21 +127,27 @@ public class RollUp<T> implements Runnable {
         if (listener != null && isNotEmpty(data.metricsPoints)) {
             runAsync(() -> listener.onRollUp(new RollUpEvent<>(metricName, aggregation.getName(), sourceGranularity, targetGranularity, data.metricsPoints)));
         }
+
+        log.trace("Roll up per {} done {}: Took={}ms", targetGranularity, this, currentTimeMillis() - runTimestamp);
     }
 
     private Data fetchSourceData(long nextTimestamp) {
         Data data = new Data();
 
-        if (data.isRaw()) {
-            data.metricsPoints = pointRepository.selectRawMetricsPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
-            data.sourceAggregation = null;
-        } else {
-            data.metricsPoints = pointRepository.selectMetricsPointsByNameAndAggregationBetweenTimestamp(metricName,
-                                                                                                         aggregation.getName(),
-                                                                                                         sourceGranularity,
-                                                                                                         lastTimestamp,
-                                                                                                         nextTimestamp);
-            data.sourceAggregation = aggregation.getName();
+        try {
+            if (data.isRaw()) {
+                data.metricsPoints = pointRepository.selectRawMetricsPointsByNameBetweenTimestamp(metricName, lastTimestamp, nextTimestamp);
+                data.sourceAggregation = null;
+            } else {
+                data.metricsPoints = pointRepository.selectMetricsPointsByNameAndAggregationBetweenTimestamp(metricName,
+                                                                                                             aggregation.getName(),
+                                                                                                             sourceGranularity,
+                                                                                                             lastTimestamp,
+                                                                                                             nextTimestamp);
+                data.sourceAggregation = aggregation.getName();
+            }
+        } finally {
+            pointRepository.getConnection().close();
         }
 
         return data;
