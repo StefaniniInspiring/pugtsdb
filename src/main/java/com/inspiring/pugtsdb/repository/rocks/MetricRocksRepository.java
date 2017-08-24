@@ -123,7 +123,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
 
             if (columnFamilyHandle == null) {
                 if (metric.getTags().isEmpty()) {
-                    db.put(createColumnFamily(columnFamilyName), serialize(null), serialize(singletonList(metric.getId())));
+                    db.put(createColumnFamily(columnFamilyName), serialize(""), serialize(singletonList(metric.getId())));
                 } else {
                     for (Entry<String, String> tag : metric.getTags().entrySet()) {
                         db.put(createColumnFamily(columnFamilyName), serialize(tag.getKey() + "=" + tag.getValue()), serialize(singletonList(metric.getId())));
@@ -131,7 +131,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
                 }
             } else {
                 if (metric.getTags().isEmpty()) {
-                    byte[] key = serialize(null);
+                    byte[] key = serialize("");
                     List<Integer> ids = deserialize(db.get(columnFamilyHandle, key), List.class);
                     ids.add(metric.getId());
                     db.put(columnFamilyHandle, key, serialize(ids));
