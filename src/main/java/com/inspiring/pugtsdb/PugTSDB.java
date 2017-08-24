@@ -9,7 +9,7 @@ import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.PointRepository;
-import com.inspiring.pugtsdb.repository.Repositories;
+import com.inspiring.pugtsdb.repository.h2.H2Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
 import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
@@ -35,7 +35,7 @@ public class PugTSDB implements Closeable {
 
     private final JdbcConnectionPool dataSource;
     private final ThreadLocal<PugConnection> currentConnection;
-    private final Repositories repositories;
+    private final com.inspiring.pugtsdb.repository.Repositories repositories;
     private final RollUpScheduler rollUpScheduler;
 
     public PugTSDB(String storagePath, String username, String password) {
@@ -61,7 +61,7 @@ public class PugTSDB implements Closeable {
             }
         });
 
-        repositories = new Repositories(this::getConnection);
+        repositories = new H2Repositories(this::getConnection);
         rollUpScheduler = new RollUpScheduler(repositories);
     }
 

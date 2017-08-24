@@ -1,17 +1,10 @@
 package com.inspiring.pugtsdb.repository;
 
 import com.inspiring.pugtsdb.sql.PugConnection;
-import java.util.function.Supplier;
 
-public abstract class Repository {
+public interface Repository {
 
-    private final Supplier<PugConnection> connectionSupplier;
-
-    public Repository(Supplier<PugConnection> connectionSupplier) {
-        this.connectionSupplier = connectionSupplier;
-    }
-
-    public PugConnection getConnection() {
-        return connectionSupplier.get();
+    default PugConnection getConnection() {
+        return null;
     }
 }

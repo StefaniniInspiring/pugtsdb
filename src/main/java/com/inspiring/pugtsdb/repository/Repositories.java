@@ -1,29 +1,10 @@
 package com.inspiring.pugtsdb.repository;
 
-import com.inspiring.pugtsdb.sql.PugConnection;
-import java.util.function.Supplier;
+public interface Repositories {
 
-public class Repositories {
+    MetricRepository getMetricRepository();
 
-    private final MetricRepository metricRepository;
-    private final PointRepository pointRepository;
-    private final TagRepository tagRepository;
+    PointRepository getPointRepository();
 
-    public Repositories(Supplier<PugConnection> connectionSupplier) {
-        this.tagRepository = new TagRepository(connectionSupplier);
-        this.pointRepository = new PointRepository(connectionSupplier, tagRepository);
-        this.metricRepository = new MetricRepository(connectionSupplier, tagRepository);
-    }
-
-    public MetricRepository getMetricRepository() {
-        return metricRepository;
-    }
-
-    public PointRepository getPointRepository() {
-        return pointRepository;
-    }
-
-    public TagRepository getTagRepository() {
-        return tagRepository;
-    }
+    TagRepository getTagRepository();
 }

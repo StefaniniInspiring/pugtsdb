@@ -1,6 +1,7 @@
 package com.inspiring.pugtsdb.rollup.purge;
 
 import com.inspiring.pugtsdb.repository.PointRepository;
+import com.inspiring.pugtsdb.repository.h2.PointH2Repository;
 import com.inspiring.pugtsdb.time.Retention;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

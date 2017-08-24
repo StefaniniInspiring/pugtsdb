@@ -1,6 +1,5 @@
 package com.inspiring.pugtsdb.rollup.schedule;
 
-import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.RollUp;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
@@ -31,9 +30,9 @@ public class RollUpScheduler {
     private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
     private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new TreeMap<>(comparing(Pattern::pattern));
     private final Map<String, List<ScheduledRollUp<?>>> scheduledRollUps = new HashMap<>();
-    private final Repositories repositories;
+    private final com.inspiring.pugtsdb.repository.Repositories repositories;
 
-    public RollUpScheduler(Repositories repositories) {
+    public RollUpScheduler(com.inspiring.pugtsdb.repository.Repositories repositories) {
         this.repositories = repositories;
     }
 

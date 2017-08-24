@@ -2,7 +2,6 @@ package com.inspiring.pugtsdb.rollup;
 
 import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.repository.PointRepository;
-import com.inspiring.pugtsdb.repository.Repositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpEvent;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
@@ -46,7 +45,7 @@ public class RollUp<T> implements Runnable {
                   Granularity sourceGranularity,
                   Granularity targetGranularity,
                   Retention retention,
-                  Repositories repositories) {
+                  com.inspiring.pugtsdb.repository.Repositories repositories) {
         this.metricName = metricName;
         this.aggregation = aggregation;
         this.sourceGranularity = sourceGranularity;
