@@ -5,9 +5,9 @@ import java.util.List;
 
 public interface MetricRepository extends Repository {
 
-    boolean notExistsMetric(Integer id);
+    boolean notExistsMetric(Metric<?> metric);
 
-    boolean existsMetric(Integer id);
+    boolean existsMetric(Metric<?> metric);
 
     List<String> selectMetricNames();
 

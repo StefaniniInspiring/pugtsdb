@@ -95,7 +95,7 @@ public class SelectionSteps {
 
         Metric<Double> metric = new DoubleMetric(metricName, tags);
 
-        if (repositories.getMetricRepository().notExistsMetric(metric.getId())) {
+        if (repositories.getMetricRepository().notExistsMetric(metric)) {
             repositories.getMetricRepository().insertMetric(metric);
             repositories.getMetricRepository().getConnection().commit();
             repositories.getMetricRepository().getConnection().close();

@@ -9,14 +9,26 @@ import java.util.function.Supplier;
 
 public class H2Repositories implements Repositories {
 
-    private final MetricRepository metricRepository;
-    private final PointRepository pointRepository;
-    private final TagRepository tagRepository;
+    private final MetricH2Repository metricRepository;
+    private final PointH2Repository pointRepository;
+    private final TagH2Repository tagRepository;
+
+    public H2Repositories() {
+        this.tagRepository = new TagH2Repository();
+        this.pointRepository = new PointH2Repository(tagRepository);
+        this.metricRepository = new MetricH2Repository(tagRepository);
+    }
 
     public H2Repositories(Supplier<PugConnection> connectionSupplier) {
         this.tagRepository = new TagH2Repository(connectionSupplier);
         this.pointRepository = new PointH2Repository(connectionSupplier, tagRepository);
         this.metricRepository = new MetricH2Repository(connectionSupplier, tagRepository);
+    }
+
+    public void setConnectionSupplier(Supplier<PugConnection> connectionSupplier) {
+        metricRepository.setConnectionSupplier(connectionSupplier);
+        pointRepository.setConnectionSupplier(connectionSupplier);
+        tagRepository.setConnectionSupplier(connectionSupplier);
     }
 
     @Override

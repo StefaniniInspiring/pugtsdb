@@ -243,6 +243,10 @@ public class PointH2Repository extends H2Repository implements PointRepository {
         this.tagRepository = tagRepository;
     }
 
+    public PointH2Repository(TagRepository tagRepository) {
+        this.tagRepository = tagRepository;
+    }
+
     @Override
     public Long selectMaxPointTimestampByNameAndAggregation(String metricName, String aggregation, Granularity granularity) {
         String sql = String.format(SQL_SELECT_MAX_POINT_TIMESTAMP_BY_NAME_AND_AGGREGATION, granularity);

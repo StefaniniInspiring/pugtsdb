@@ -30,6 +30,10 @@ public class TagH2Repository extends H2Repository implements TagRepository {
         super(connectionSupplier);
     }
 
+    public TagH2Repository() {
+        super();
+    }
+
     @Override
     public Map<String, String> selectTagsByMetricId(int metricId) {
         Map<String, String> tags = new HashMap<>();

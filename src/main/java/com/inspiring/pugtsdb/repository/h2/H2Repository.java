@@ -6,9 +6,17 @@ import java.util.function.Supplier;
 
 public abstract class H2Repository implements Repository {
 
-    private final Supplier<PugConnection> connectionSupplier;
+    private Supplier<PugConnection> connectionSupplier;
 
-    public H2Repository(Supplier<PugConnection> connectionSupplier) {
+    H2Repository() {
+        super();
+    }
+
+    H2Repository(Supplier<PugConnection> connectionSupplier) {
+        this.connectionSupplier = connectionSupplier;
+    }
+
+    void setConnectionSupplier(Supplier<PugConnection> connectionSupplier) {
         this.connectionSupplier = connectionSupplier;
     }
 

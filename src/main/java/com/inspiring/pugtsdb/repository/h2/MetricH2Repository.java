@@ -56,19 +56,23 @@ public class MetricH2Repository extends H2Repository implements MetricRepository
         this.tagRepository = tagRepository;
     }
 
-    @Override
-    public boolean notExistsMetric(Integer id) {
-        return !existsMetric(id);
+    public MetricH2Repository(TagRepository tagRepository) {
+        this.tagRepository = tagRepository;
     }
 
     @Override
-    public boolean existsMetric(Integer id) {
+    public boolean notExistsMetric(Metric<?> metric) {
+        return !existsMetric(metric);
+    }
+
+    @Override
+    public boolean existsMetric(Metric<?> metric) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_METRIC_BY_ID)) {
-            statement.setInt(1, id);
+            statement.setInt(1, metric.getId());
 
             return statement.executeQuery().first();
         } catch (SQLException e) {
-            throw new PugSQLException("Cannot check metric %s existence with query %s", id, SQL_SELECT_METRIC_BY_ID, e);
+            throw new PugSQLException("Cannot check metric %s existence with query %s", metric.getId(), SQL_SELECT_METRIC_BY_ID, e);
         }
     }
 
