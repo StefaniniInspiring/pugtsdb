@@ -19,6 +19,7 @@ import static com.inspiring.pugtsdb.util.Serializer.deserialize;
 import static com.inspiring.pugtsdb.util.Serializer.serialize;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
@@ -39,7 +40,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
 
         try (RocksIterator iterator = db.newIterator(columnFamilyHandle)) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
-                List<Integer> ids = deserialize(iterator.value(), List.class);
+                Set<Integer> ids = deserialize(iterator.value(), HashSet.class);
 
                 if (ids.contains(metric.getId())) {
                     return true;
@@ -86,7 +87,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
             try (RocksIterator iterator = db.newIterator(columnFamilyHandle)) {
                 for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
                     Tag tag = Tag.valueOf(deserialize(iterator.key(), String.class));
-                    List<Integer> ids = deserialize(iterator.value(), List.class);
+                    Set<Integer> ids = deserialize(iterator.value(), HashSet.class);
 
                     for (Integer id : ids) {
                         Set<Tag> tags = tagsById.computeIfAbsent(id, integer -> new HashSet<>());
@@ -123,24 +124,28 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
 
             if (columnFamilyHandle == null) {
                 if (metric.getTags().isEmpty()) {
-                    db.put(createColumnFamily(columnFamilyName), serialize(""), serialize(singletonList(metric.getId())));
+                    db.put(createColumnFamily(columnFamilyName), serialize(""), serialize(singleton(metric.getId())));
                 } else {
                     for (Entry<String, String> tag : metric.getTags().entrySet()) {
-                        db.put(createColumnFamily(columnFamilyName), serialize(tag.getKey() + "=" + tag.getValue()), serialize(singletonList(metric.getId())));
+                        db.put(createColumnFamily(columnFamilyName), serialize(tag.getKey() + "=" + tag.getValue()), serialize(singleton(metric.getId())));
                     }
                 }
             } else {
                 if (metric.getTags().isEmpty()) {
                     byte[] key = serialize("");
-                    List<Integer> ids = deserialize(db.get(columnFamilyHandle, key), List.class);
-                    ids.add(metric.getId());
-                    db.put(columnFamilyHandle, key, serialize(ids));
+                    Set<Integer> ids = deserialize(db.get(columnFamilyHandle, key), HashSet.class);
+
+                    if (ids.add(metric.getId())) {
+                        db.put(columnFamilyHandle, key, serialize(ids));
+                    }
                 } else {
                     for (Entry<String, String> tag : metric.getTags().entrySet()) {
                         byte[] key = serialize(tag.getKey() + "=" + tag.getValue());
-                        List<Integer> ids = deserialize(db.get(columnFamilyHandle, key), List.class);
-                        ids.add(metric.getId());
-                        db.put(columnFamilyHandle, key, serialize(ids));
+                        Set<Integer> ids = deserialize(db.get(columnFamilyHandle, key), HashSet.class);
+
+                        if (ids.add(metric.getId())) {
+                            db.put(columnFamilyHandle, key, serialize(ids));
+                        }
                     }
                 }
             }
