@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.upsertion;
 
-import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.bean.Point;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.metric.BooleanMetric;
@@ -40,11 +40,11 @@ public class UpsertionSteps<T> {
     private Metric<T> metric;
     private Point<Object> point;
     private String storage = "/tmp/pugtest";
-    private PugTSDB pugTSDB;
+    private PugTSDBOverH2 pugTSDB;
 
     @Before
     public void startup() {
-        pugTSDB = new PugTSDB(storage, "test", "test");
+        pugTSDB = new PugTSDBOverH2(storage, "test", "test");
     }
 
     @After

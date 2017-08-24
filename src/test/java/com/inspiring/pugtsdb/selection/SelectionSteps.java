@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.selection;
 
-import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.bean.Tag;
 import com.inspiring.pugtsdb.metric.DoubleMetric;
@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 public class SelectionSteps {
 
     private Granularity granularity;
-    private PugTSDB pugTSDB;
+    private PugTSDBOverH2 pugTSDB;
     private Repositories repositories;
 
     private MetricPoints actualMetricPoints;
@@ -45,7 +45,7 @@ public class SelectionSteps {
 
     @Before
     public void prepare() {
-        pugTSDB = new PugTSDB("/tmp/pug-rollup-test", "test", "test");
+        pugTSDB = new PugTSDBOverH2("/tmp/pug-rollup-test", "test", "test");
 
         repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
                 .filter(field -> {

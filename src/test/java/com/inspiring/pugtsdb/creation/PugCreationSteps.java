@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.creation;
 
-import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import cucumber.api.java.After;
 import cucumber.api.java.en.Then;
@@ -16,7 +16,7 @@ import static org.junit.Assert.assertTrue;
 public class PugCreationSteps {
 
     private String actualStorage;
-    private PugTSDB actualPug;
+    private PugTSDBOverH2 actualPug;
     private Exception actualException;
 
     @After
@@ -33,7 +33,7 @@ public class PugCreationSteps {
     @When("^create a Pug instance with storage path \"([^\"]*)\" user \"([^\"]*)\" and pass \"([^\"]*)\"$")
     public void createAPugInstanceWithStoragePathUserAndPass(String storage, String user, String pass) throws Throwable {
         try {
-            actualPug = new PugTSDB(actualStorage = storage, user, pass);
+            actualPug = new PugTSDBOverH2(actualStorage = storage, user, pass);
         } catch (Exception e) {
             actualException = e;
         }
@@ -42,7 +42,7 @@ public class PugCreationSteps {
     @When("^create a Pug instance with storage path null user \"([^\"]*)\" and pass \"([^\"]*)\"$")
     public void createAPugInstanceWithStoragePathNullUserAndPass(String user, String pass) throws Throwable {
         try {
-            actualPug = new PugTSDB(null, user, pass);
+            actualPug = new PugTSDBOverH2(null, user, pass);
         } catch (Exception e) {
             actualException = e;
         }
@@ -51,7 +51,7 @@ public class PugCreationSteps {
     @When("^create a Pug instance with storage path \"([^\"]*)\" user null and pass \"([^\"]*)\"$")
     public void createAPugInstanceWithStoragePathUserNullAndPass(String storage, String pass) throws Throwable {
         try {
-            actualPug = new PugTSDB(actualStorage = storage, null, pass);
+            actualPug = new PugTSDBOverH2(actualStorage = storage, null, pass);
         } catch (Exception e) {
             actualException = e;
         }
@@ -60,7 +60,7 @@ public class PugCreationSteps {
     @When("^create a Pug instance with storage path \"([^\"]*)\" user \"([^\"]*)\" and pass null$")
     public void createAPugInstanceWithStoragePathUserAndPassNull(String storage, String user) throws Throwable {
         try {
-            actualPug = new PugTSDB(actualStorage = storage, user, null);
+            actualPug = new PugTSDBOverH2(actualStorage = storage, user, null);
         } catch (Exception e) {
             actualException = e;
         }

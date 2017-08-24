@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.rollup.listener;
 
-import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.metric.DoubleMetric;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.Repositories;
@@ -42,7 +42,7 @@ public class RollUpListenerSteps {
     private Retention retention;
     private RollUp rollUp;
     private RollUpListener listener;
-    private PugTSDB pugTSDB;
+    private PugTSDBOverH2 pugTSDB;
     private Repositories repositories;
 
     private Instant executionInstant;
@@ -50,7 +50,7 @@ public class RollUpListenerSteps {
 
     @Before
     public void prepare() {
-        pugTSDB = new PugTSDB("/tmp/pug-rollup-test", "test", "test");
+        pugTSDB = new PugTSDBOverH2("/tmp/pug-rollup-test", "test", "test");
 
         repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
                 .filter(field -> {

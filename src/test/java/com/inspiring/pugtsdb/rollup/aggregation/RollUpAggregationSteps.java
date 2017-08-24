@@ -1,6 +1,6 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
-import com.inspiring.pugtsdb.PugTSDB;
+import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.metric.BooleanMetric;
 import com.inspiring.pugtsdb.metric.DoubleMetric;
 import com.inspiring.pugtsdb.metric.LongMetric;
@@ -43,14 +43,14 @@ public class RollUpAggregationSteps {
     private Granularity targetGranularity;
     private Retention retention;
     private RollUp rollUp;
-    private PugTSDB pugTSDB;
+    private PugTSDBOverH2 pugTSDB;
     private Repositories repositories;
 
     private Instant executionInstant;
 
     @Before
     public void prepare() {
-        pugTSDB = new PugTSDB("/tmp/pug-rollup-test", "test", "test");
+        pugTSDB = new PugTSDBOverH2("/tmp/pug-rollup-test", "test", "test");
 
         repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
                 .filter(field -> {
