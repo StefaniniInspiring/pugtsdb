@@ -1,6 +1,7 @@
 package com.inspiring.pugtsdb.bean;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -9,6 +10,7 @@ import static com.inspiring.pugtsdb.util.Strings.isBlank;
 import static java.util.Collections.emptyMap;
 import static java.util.Comparator.naturalOrder;
 import static java.util.function.BinaryOperator.maxBy;
+import static java.util.stream.Collectors.toList;
 
 public class Tag {
 
@@ -70,5 +72,12 @@ public class Tag {
 
     public static Map<String, String> toMap(Stream<Tag> stream) {
         return stream.collect(Collectors.toMap(Tag::getName, Tag::getValue, maxBy(naturalOrder())));
+    }
+
+    public static List<String> fromMapToStringList(Map<String, String> map) {
+        return map.entrySet()
+                .stream()
+                .map(entry -> entry.getKey() + '=' + entry.getValue())
+                .collect(toList());
     }
 }

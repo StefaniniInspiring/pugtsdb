@@ -222,9 +222,13 @@ public class PointH2Repository extends H2Repository implements PointRepository {
             + " VALUES (?, ?, ?, ?)    ";
 
     private static final String SQL_DELETE_RAW_POINT_BEFORE_TIMESTAMP = ""
-            + " DELETE                   "
-            + " FROM   point             "
-            + " WHERE  \"timestamp\" < ? ";
+            + " DELETE                       "
+            + " FROM   point                 "
+            + " WHERE  \"metric_id\"         "
+            + " IN     (SELECT \"id\"        "
+            + "         FROM   metric        "
+            + "         WHERE  \"name\" = ?) "
+            + " AND   \"timestamp\" < ?      ";
 
     private static final String SQL_DELETE_POINT_BEFORE_TIMESTAMP = ""
             + " DELETE                       "
@@ -715,12 +719,13 @@ public class PointH2Repository extends H2Repository implements PointRepository {
     }
 
     @Override
-    public void deleteRawPointsBeforeTime(long time) {
+    public void deleteRawPointsByNameBeforeTime(String metricName, long time) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_DELETE_RAW_POINT_BEFORE_TIMESTAMP)) {
-            statement.setTimestamp(1, new Timestamp(time));
+            statement.setString(1, metricName);
+            statement.setTimestamp(2, new Timestamp(time));
             statement.execute();
         } catch (SQLException e) {
-            throw new PugSQLException("Cannot delete metric points before %s with statement %s", time, SQL_DELETE_RAW_POINT_BEFORE_TIMESTAMP, e);
+            throw new PugSQLException("Cannot delete metric %s points before %s with statement %s", metricName, time, SQL_DELETE_RAW_POINT_BEFORE_TIMESTAMP, e);
         }
     }
 

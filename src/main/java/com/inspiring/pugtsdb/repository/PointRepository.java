@@ -80,7 +80,7 @@ public interface PointRepository extends Repository {
 
     <T> void upsertMetricPoints(MetricPoints<T> metricPoints, Granularity granularity);
 
-    void deleteRawPointsBeforeTime(long time);
+    void deleteRawPointsByNameBeforeTime(String metricName, long time);
 
     void deletePointsByNameAndAggregationBeforeTime(String metricName, String aggregation, Granularity granularity, long time);
 }
