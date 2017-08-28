@@ -31,6 +31,10 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
 
     private final Map<String, Set<Integer>> metricIdCache = new ConcurrentHashMap<>();
 
+    public MetricRocksRepository() {
+        super();
+    }
+
     public MetricRocksRepository(RocksDB db,
                                  ColumnFamilyOptions columnFamilyOptions,
                                  Map<String, ColumnFamilyHandle> columnFamilyCache) {

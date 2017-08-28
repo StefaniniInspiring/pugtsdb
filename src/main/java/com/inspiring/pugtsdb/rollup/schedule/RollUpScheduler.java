@@ -25,7 +25,7 @@ import static java.util.stream.Collectors.toList;
 
 public class RollUpScheduler {
 
-    private static final int INITIAL_DELAY = 5;
+    private static final int INITIAL_DELAY = 10;
 
     private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
     private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new TreeMap<>(comparing(Pattern::pattern));

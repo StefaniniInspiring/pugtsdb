@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.rollup.aggregation;
 
+import com.inspiring.pugtsdb.PugTSDB;
 import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.metric.BooleanMetric;
 import com.inspiring.pugtsdb.metric.DoubleMetric;
@@ -52,7 +53,7 @@ public class RollUpAggregationSteps {
     public void prepare() {
         pugTSDB = new PugTSDBOverH2("/tmp/pug-rollup-test", "test", "test");
 
-        repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
+        repositories = Stream.of(PugTSDB.class.getDeclaredFields())
                 .filter(field -> {
                     field.setAccessible(true);
                     return field.isAccessible();

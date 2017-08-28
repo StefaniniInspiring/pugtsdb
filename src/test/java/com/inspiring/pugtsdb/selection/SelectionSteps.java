@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.selection;
 
+import com.inspiring.pugtsdb.PugTSDB;
 import com.inspiring.pugtsdb.PugTSDBOverH2;
 import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.bean.Tag;
@@ -47,12 +48,12 @@ public class SelectionSteps {
     public void prepare() {
         pugTSDB = new PugTSDBOverH2("/tmp/pug-rollup-test", "test", "test");
 
-        repositories = Stream.of(pugTSDB.getClass().getDeclaredFields())
+        repositories = Stream.of(PugTSDB.class.getDeclaredFields())
                 .filter(field -> {
                     field.setAccessible(true);
                     return field.isAccessible();
                 })
-                .filter(field -> field.getType().equals(Repositories.class))
+                .filter(field -> field.getType().isAssignableFrom(Repositories.class))
                 .map(field -> {
                     try {
                         return (Repositories) field.get(pugTSDB);

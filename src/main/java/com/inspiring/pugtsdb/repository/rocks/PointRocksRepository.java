@@ -26,6 +26,10 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
     private final MetricRocksRepository metricRepository;
 
+    public PointRocksRepository(MetricRocksRepository metricRepository) {
+        this.metricRepository = metricRepository;
+    }
+
     public PointRocksRepository(RocksDB db,
                                 ColumnFamilyOptions columnFamilyOptions,
                                 Map<String, ColumnFamilyHandle> columnFamilyCache,
