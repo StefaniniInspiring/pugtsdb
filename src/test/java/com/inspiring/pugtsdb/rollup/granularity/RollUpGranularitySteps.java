@@ -113,7 +113,7 @@ public class RollUpGranularitySteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, resolveTimestamp(timestampState, timestampUnitString));
             statement.setBytes(3, metric.valueToBytes(value));
             statement.execute();
@@ -137,7 +137,7 @@ public class RollUpGranularitySteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setString(2, aggregation.getName());
             ResultSet resultSet = statement.executeQuery();
 
@@ -162,7 +162,7 @@ public class RollUpGranularitySteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setString(3, aggregation.getName());
             ResultSet resultSet = statement.executeQuery();

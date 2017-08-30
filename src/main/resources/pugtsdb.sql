@@ -1,5 +1,5 @@
 CREATE CACHED TABLE IF NOT EXISTS metric (
-  "id"   INTEGER NOT NULL,
+  "id"   VARCHAR NOT NULL,
   "name" VARCHAR NOT NULL,
   "type" VARCHAR NOT NULL,
   PRIMARY KEY ("id")
@@ -12,7 +12,7 @@ CREATE CACHED TABLE IF NOT EXISTS tag (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point (
-  "metric_id" INTEGER   NOT NULL,
+  "metric_id" VARCHAR   NOT NULL,
   "timestamp" TIMESTAMP NOT NULL,
   "value"     BINARY    NULL,
   PRIMARY KEY ("metric_id", "timestamp"),
@@ -21,7 +21,7 @@ CREATE CACHED TABLE IF NOT EXISTS point (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_1s (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -31,7 +31,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_1s (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_30s (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -41,7 +41,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_30s (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_1m (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -51,7 +51,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_1m (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_1h (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -61,7 +61,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_1h (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_1d (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -71,7 +71,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_1d (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_1mo (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -81,7 +81,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_1mo (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS point_1y (
-  "metric_id"   INTEGER   NOT NULL,
+  "metric_id"   VARCHAR   NOT NULL,
   "timestamp"   TIMESTAMP NOT NULL,
   "aggregation" VARCHAR   NOT NULL,
   "value"       BINARY    NULL,
@@ -91,7 +91,7 @@ CREATE CACHED TABLE IF NOT EXISTS point_1y (
 );
 
 CREATE CACHED TABLE IF NOT EXISTS metric_tag (
-  "metric_id" INTEGER NOT NULL,
+  "metric_id" VARCHAR NOT NULL,
   "tag_name"  VARCHAR NOT NULL,
   "tag_value" VARCHAR NOT NULL,
   PRIMARY KEY ("metric_id", "tag_name", "tag_value"),

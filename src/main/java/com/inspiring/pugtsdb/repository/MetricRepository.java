@@ -5,7 +5,9 @@ import java.util.List;
 
 public interface MetricRepository extends Repository {
 
-    boolean notExistsMetric(Metric<?> metric);
+    default boolean notExistsMetric(Metric<?> metric) {
+        return !existsMetric(metric);
+    }
 
     boolean existsMetric(Metric<?> metric);
 

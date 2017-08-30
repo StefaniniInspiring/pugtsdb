@@ -126,11 +126,11 @@ public class UpsertionSteps<T> {
     public void theMetricIsSaved() throws Throwable {
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT \"id\", \"name\", \"type\" FROM metric WHERE \"id\"=?")) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             ResultSet resultSet = statement.executeQuery();
 
             assertTrue(resultSet.next());
-            assertEquals(metric.getId(), (Integer) resultSet.getInt("id"));
+            assertEquals(metric.getId(), resultSet.getString("id"));
             assertEquals(metric.getName(), resultSet.getString("name"));
             assertEquals(metric.getClass().getTypeName(), resultSet.getString("type"));
         }
@@ -155,7 +155,7 @@ public class UpsertionSteps<T> {
         for (Map.Entry<String, String> tag : metricTags.entrySet()) {
             try (Connection connection = pugTSDB.getDataSource().getConnection();
                  PreparedStatement statement = connection.prepareStatement("SELECT * FROM metric_tag WHERE \"metric_id\"=? AND \"tag_name\"=? AND \"tag_value\"=?")) {
-                statement.setInt(1, metric.getId());
+                statement.setString(1, metric.getId());
                 statement.setString(2, tag.getKey());
                 statement.setString(3, tag.getValue());
                 ResultSet resultSet = statement.executeQuery();
@@ -169,11 +169,11 @@ public class UpsertionSteps<T> {
     public void theValueIsSaved() throws Throwable {
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT \"metric_id\", \"timestamp\", \"value\" FROM point WHERE \"metric_id\"=?")) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             ResultSet resultSet = statement.executeQuery();
 
             assertTrue(resultSet.next());
-            assertEquals(metric.getId(), (Integer) resultSet.getInt("metric_id"));
+            assertEquals(metric.getId(), resultSet.getString("metric_id"));
             assertEquals(point.getTimestamp(), resultSet.getTimestamp("timestamp").getTime());
 
             byte[] expectedBytes = metric.valueToBytes((T) point.getValue());

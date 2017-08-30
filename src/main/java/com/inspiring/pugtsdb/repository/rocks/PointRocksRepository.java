@@ -24,6 +24,9 @@ import static java.util.stream.Collectors.toList;
 
 public class PointRocksRepository extends RocksRepository implements PointRepository {
 
+    private static final String LAST_TIMESTAMP = "9999999999999";
+    private static final String FIRST_TIMESTAMP = "0000000000000";
+
     private final MetricRocksRepository metricRepository;
 
     public PointRocksRepository(MetricRocksRepository metricRepository) {
@@ -42,14 +45,18 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
     public Long selectMaxPointTimestampByNameAndAggregation(String metricName, String aggregation, Granularity granularity) {
         Long timestamp = null;
 
-        for (Integer metricId : metricRepository.getMetricIdsFromCache(metricName)) {
-            try (RocksIterator iterator = db.newIterator(getOrCreateValueByTimeColumnFamily(metricId, aggregation, granularity))) {
-                iterator.seekToLast();
+        for (String metricId : metricRepository.getMetricIdsFromCache(metricName)) {
+            try (RocksIterator iterator = db.newIterator(getPointColumnFamily(aggregation, granularity))) {
+                iterator.seek(PointId.of(metricId, LAST_TIMESTAMP).toBytes());
 
                 if (iterator.isValid()) {
-                    timestamp = timestamp != null
-                                ? max(timestamp, deserialize(iterator.key(), Long.class))
-                                : deserialize(iterator.key(), Long.class);
+                    PointId pointId = PointId.from(iterator.key());
+
+                    if (pointId != null && pointId.metricId.equals(metricId)) {
+                        timestamp = timestamp != null
+                                    ? max(timestamp, pointId.timestamp)
+                                    : pointId.timestamp;
+                    }
                 }
             }
         }
@@ -63,7 +70,7 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
     }
 
     @Override
-    public <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(int metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
+    public <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(String metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
         throw new PugNotImplementedException("selectRawMetricPointsByIdBetweenTimestamp(int metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp)");
     }
 
@@ -81,7 +88,7 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
     }
 
     @Override
-    public <T> MetricPoints<T> selectMetricPointsByIdAndAggregationBetweenTimestamp(int metricId,
+    public <T> MetricPoints<T> selectMetricPointsByIdAndAggregationBetweenTimestamp(String metricId,
                                                                                     String aggregation,
                                                                                     Granularity granularity,
                                                                                     long fromInclusiveTimestamp,
@@ -90,17 +97,17 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
     }
 
     @Override
-    public <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(int metricId, String aggregation, Granularity granularity, int qty) {
+    public <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(String metricId, String aggregation, Granularity granularity, int qty) {
         return null;
     }
 
     @Override
-    public <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(int metricId, Granularity granularity, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
+    public <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(String metricId, Granularity granularity, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
         return null;
     }
 
     @Override
-    public <T> MetricPoints<T> selectLastMetricPointsById(int metricId, Granularity granularity, int qty) {
+    public <T> MetricPoints<T> selectLastMetricPointsById(String metricId, Granularity granularity, int qty) {
         return null;
     }
 
@@ -115,11 +122,17 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
                 .map(metric -> {
                     MetricPoints<T> metricPoints = new MetricPoints<>(metric);
 
-                    try (RocksIterator iterator = db.newIterator(getOrCreateValueByTimeColumnFamily(metric.getId(), aggregation, granularity))) {
-                        Long timestamp = Long.MAX_VALUE;
+                    try (RocksIterator iterator = db.newIterator(getPointColumnFamily(aggregation, granularity))) {
+                        byte[] fromPointId = PointId.of(metric.getId(), fromInclusiveTimestamp).toBytes();
 
-                        for (iterator.seek(serialize(fromInclusiveTimestamp)); iterator.isValid() && timestamp < toExclusiveTimestamp; iterator.next()) {
-                            timestamp = deserialize(iterator.key(), Long.class);
+                        for (iterator.seek(fromPointId); iterator.isValid(); iterator.next()) {
+                            PointId pointId = PointId.from(iterator.key());
+
+                            if (pointId == null || !pointId.metricId.equals(metric.getId()) || pointId.timestamp >= toExclusiveTimestamp) {
+                                break;
+                            }
+
+                            Long timestamp = pointId.timestamp;
                             T value = metric.valueFromBytes(iterator.value());
                             metricPoints.put(aggregation, timestamp, value);
                         }
@@ -173,11 +186,11 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
         try {
             Metric<T> metric = metricPoint.getMetric();
             Point<T> point = metricPoint.getPoint();
-            byte[] timestampBytes = serialize(point.getTimestamp());
+            byte[] idBytes = PointId.of(metric.getId(), point.getTimestamp()).toBytes();
             byte[] valueBytes = metric.valueToBytes(point.getValue());
-            ColumnFamilyHandle valueByTimeColumnFamily = getOrCreateValueByTimeColumnFamily(metric.getId(), null, null);
+            ColumnFamilyHandle pointColumnFamily = getPointColumnFamily(null, null);
 
-            db.put(valueByTimeColumnFamily, timestampBytes, valueBytes);
+            db.put(pointColumnFamily, idBytes, valueBytes);
         } catch (Exception e) {
             throw new PugException("Cannot upsert metric point " + metricPoint, e);
         }
@@ -190,14 +203,14 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
             Map<String, Map<Long, T>> points = metricPoints.getPoints();
 
             points.forEach((aggregation, point) -> {
-                ColumnFamilyHandle valueByTimeColumnFamily = getOrCreateValueByTimeColumnFamily(metric.getId(), aggregation, granularity);
+                ColumnFamilyHandle pointColumnFamily = getPointColumnFamily(aggregation, granularity);
 
                 point.forEach((timestamp, value) -> {
-                    byte[] timestampBytes = serialize(timestamp);
+                    byte[] idBytes = PointId.of(metric.getId(), timestamp).toBytes();
                     byte[] valueBytes = metric.valueToBytes(value);
 
                     try {
-                        db.put(valueByTimeColumnFamily, timestampBytes, valueBytes);
+                        db.put(pointColumnFamily, idBytes, valueBytes);
                     } catch (RocksDBException e) {
                         throw new PugException("Cannot upsert value " + value + " on timestamp " + timestamp, e);
                     }
@@ -216,15 +229,54 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
     @Override
     public void deletePointsByNameAndAggregationBeforeTime(String metricName, String aggregation, Granularity granularity, long time) {
         try {
-            for (Integer metricId : metricRepository.getMetricIdsFromCache(metricName)) {
-                ColumnFamilyHandle valueByTimeColumnFamily = getOrCreateValueByTimeColumnFamily(metricId, aggregation, granularity);
-                byte[] fromIncludingTime = serialize(0);
-                byte[] toExcludeTime = serialize(time - 1);
+            for (String metricId : metricRepository.getMetricIdsFromCache(metricName)) {
+                ColumnFamilyHandle pointColumnFamily = getPointColumnFamily(aggregation, granularity);
+                byte[] fromInclusiveId = PointId.of(metricId, FIRST_TIMESTAMP).toBytes();
+                byte[] toExclusiveId = PointId.of(metricId, time - 1).toBytes();
 
-                db.deleteRange(valueByTimeColumnFamily, fromIncludingTime, toExcludeTime);
+                db.deleteRange(pointColumnFamily, fromInclusiveId, toExclusiveId);
             }
         } catch (Exception e) {
             throw new PugException(format("Cannot delete metric {0} points aggregated as {1} in {2} before {3}", metricName, aggregation, granularity, time), e);
+        }
+    }
+
+    private static class PointId {
+
+        String metricId;
+        Long timestamp;
+
+        static PointId of(String metricId, Long timestamp) {
+            PointId pointId = new PointId();
+            pointId.metricId = metricId;
+            pointId.timestamp = timestamp;
+
+            return pointId;
+        }
+
+        static PointId of(String metricId, String timestamp) {
+            PointId pointId = new PointId();
+            pointId.metricId = metricId;
+            pointId.timestamp = Long.valueOf(timestamp);
+
+            return pointId;
+        }
+
+        static PointId from(byte[] bytes) {
+            return bytes == null ? null : from(deserialize(bytes, String.class));
+        }
+
+        static PointId from(String string) {
+            return of(string.substring(0, Metric.ID_LENGTH), string.substring(Metric.ID_LENGTH));
+        }
+
+        @Override
+        public String toString() {
+            return metricId.concat(timestamp.toString());
+        }
+
+        public byte[] toBytes() {
+            return serialize(toString());
         }
     }
 }

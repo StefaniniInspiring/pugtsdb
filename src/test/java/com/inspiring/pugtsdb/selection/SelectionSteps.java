@@ -108,7 +108,7 @@ public class SelectionSteps {
             for (List<String> row : rows) {
                 try (Connection connection = pugTSDB.getDataSource().getConnection();
                      PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setInt(1, metric.getId());
+                    statement.setString(1, metric.getId());
                     statement.setTimestamp(2, new Timestamp(parseTime(row.get(0))));
                     statement.setBytes(3, metric.valueToBytes(parseDouble(row.get(1))));
                     statement.execute();
@@ -120,7 +120,7 @@ public class SelectionSteps {
             for (List<String> row : rows) {
                 try (Connection connection = pugTSDB.getDataSource().getConnection();
                      PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setInt(1, metric.getId());
+                    statement.setString(1,     metric.getId());
                     statement.setTimestamp(2, new Timestamp(parseTime(row.get(0))));
                     statement.setString(3, row.get(1));
                     statement.setBytes(4, metric.valueToBytes(parseDouble(row.get(2))));

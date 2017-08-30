@@ -116,7 +116,7 @@ public class RollUpPurgeSteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setString(3, aggregation.getName());
             statement.setBytes(4, metric.valueToBytes(value));
@@ -143,7 +143,7 @@ public class RollUpPurgeSteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setString(3, aggregation.getName());
             ResultSet resultSet = statement.executeQuery();
@@ -166,7 +166,7 @@ public class RollUpPurgeSteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setString(3, aggregation.getName());
             ResultSet resultSet = statement.executeQuery();

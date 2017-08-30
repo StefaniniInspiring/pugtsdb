@@ -35,11 +35,11 @@ public class TagH2Repository extends H2Repository implements TagRepository {
     }
 
     @Override
-    public Map<String, String> selectTagsByMetricId(int metricId) {
+    public Map<String, String> selectTagsByMetricId(String metricId) {
         Map<String, String> tags = new HashMap<>();
 
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_TAG_BY_METRIC_ID)) {
-            statement.setInt(1, metricId);
+            statement.setString(1, metricId);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {

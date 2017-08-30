@@ -68,7 +68,7 @@ public class MetricH2Repository extends H2Repository implements MetricRepository
     @Override
     public boolean existsMetric(Metric<?> metric) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_SELECT_METRIC_BY_ID)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
 
             return statement.executeQuery().first();
         } catch (SQLException e) {
@@ -114,7 +114,7 @@ public class MetricH2Repository extends H2Repository implements MetricRepository
     @Override
     public void insertMetric(Metric<?> metric) {
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_INSERT_METRIC)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setString(2, metric.getName());
             statement.setString(3, metric.getClass().getTypeName());
             statement.execute();
@@ -127,7 +127,7 @@ public class MetricH2Repository extends H2Repository implements MetricRepository
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_INSERT_METRIC_TAG)) {
             metric.getTags().forEach((name, value) -> {
                 try {
-                    statement.setInt(1, metric.getId());
+                    statement.setString(1, metric.getId());
                     statement.setString(2, name);
                     statement.setString(3, value);
                     statement.execute();
@@ -147,7 +147,7 @@ public class MetricH2Repository extends H2Repository implements MetricRepository
 
     @SuppressWarnings("unchecked")
     private <T> Metric<T> buildMetric(ResultSet resultSet) throws Exception {
-        Integer id = resultSet.getInt("id");
+        String id = resultSet.getString("id");
         String name = resultSet.getString("name");
         String type = resultSet.getString("type");
         Map<String, String> tags = tagRepository.selectTagsByMetricId(id);

@@ -190,7 +190,7 @@ public class RollUpListenerSteps {
 
         try (Connection connection = pugTSDB.getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, timestamp);
             statement.setBytes(3, metric.valueToBytes(value));
 

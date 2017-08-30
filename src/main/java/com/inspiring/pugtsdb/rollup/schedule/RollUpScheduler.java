@@ -23,9 +23,9 @@ import static java.util.Comparator.comparing;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
-public class RollUpScheduler {
+public class RollUpScheduler implements AutoCloseable {
 
-    private static final int INITIAL_DELAY = 10;
+    private static final int INITIAL_DELAY = 60;
 
     private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
     private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new TreeMap<>(comparing(Pattern::pattern));
@@ -163,6 +163,11 @@ public class RollUpScheduler {
         } catch (InterruptedException e) {
             scheduledThreadPool.shutdownNow();
         }
+    }
+
+    @Override
+    public void close() throws Exception {
+        scheduledThreadPool.shutdownNow();
     }
 
     private class RollUpBuilder<T> {

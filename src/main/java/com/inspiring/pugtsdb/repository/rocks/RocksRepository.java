@@ -14,9 +14,8 @@ import org.rocksdb.RocksDB;
 
 public class RocksRepository implements Repository {
 
-    static final String COLUMN_FAMILY_VALUE_BY_TIME = "value_by_time";
-    static final String COLUMN_FAMILY_CLASS_BY_NAME = "class_by_name";
-    static final String COLUMN_FAMILY_IDS_BY_TAG = "ids_by_tag";
+    public static final String COLUMN_FAMILY_METRIC = "metric";
+    public static final String COLUMN_FAMILY_POINT = "point";
 
     protected RocksDB db;
     protected ColumnFamilyOptions columnFamilyOptions;
@@ -46,16 +45,12 @@ public class RocksRepository implements Repository {
         }
     }
 
-    protected ColumnFamilyHandle getOrCreateValueByTimeColumnFamily(Integer metricId, String aggregation, Granularity granularity){
-        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_VALUE_BY_TIME + ':' + metricId + ':' + aggregation + ':' + granularity, this::createColumnFamily);
+    protected ColumnFamilyHandle getPointColumnFamily(String aggregation, Granularity granularity) {
+        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_POINT + ':' + aggregation + ':' + granularity, this::createColumnFamily);
     }
 
-    protected ColumnFamilyHandle getOrCreateClassByNameColumnFamily() {
-        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_CLASS_BY_NAME, this::createColumnFamily);
-    }
-
-    protected ColumnFamilyHandle getOrCreateIdsByTagColumnFamily(String metricName) {
-        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_IDS_BY_TAG + ':' + metricName, this::createColumnFamily);
+    protected ColumnFamilyHandle getMetricColumnFamily() {
+        return columnFamilyCache.get(COLUMN_FAMILY_METRIC);
     }
 
     @Override

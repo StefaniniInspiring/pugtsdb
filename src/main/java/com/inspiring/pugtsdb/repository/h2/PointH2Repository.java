@@ -300,11 +300,11 @@ public class PointH2Repository extends H2Repository implements PointRepository {
     }
 
     @Override
-    public <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(int metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
+    public <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(String metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp) {
         String sql = SQL_SELECT_RAW_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP + SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setInt(1, metricId);
+            statement.setString(1, metricId);
             statement.setTimestamp(2, new Timestamp(fromInclusiveTimestamp));
             statement.setTimestamp(3, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
@@ -377,7 +377,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
     }
 
     @Override
-    public <T> MetricPoints<T> selectMetricPointsByIdAndAggregationBetweenTimestamp(int metricId,
+    public <T> MetricPoints<T> selectMetricPointsByIdAndAggregationBetweenTimestamp(String metricId,
                                                                                     String aggregation,
                                                                                     Granularity granularity,
                                                                                     long fromInclusiveTimestamp,
@@ -385,7 +385,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
         String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_AND_AGGREGATION_BETWEEN_TIMESTAMP, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setInt(1, metricId);
+            statement.setString(1, metricId);
             statement.setString(2, aggregation);
             statement.setTimestamp(3, new Timestamp(fromInclusiveTimestamp));
             statement.setTimestamp(4, new Timestamp(toExclusiveTimestamp));
@@ -405,7 +405,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
     }
 
     @Override
-    public <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(int metricId,
+    public <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(String metricId,
                                                                         String aggregation,
                                                                         Granularity granularity,
                                                                         int qty) {
@@ -413,7 +413,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, qty);
-            statement.setInt(2, metricId);
+            statement.setString(2, metricId);
             statement.setString(3, aggregation);
             ResultSet resultSet = statement.executeQuery();
 
@@ -430,14 +430,14 @@ public class PointH2Repository extends H2Repository implements PointRepository {
     }
 
     @Override
-    public <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(int metricId,
+    public <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(String metricId,
                                                                       Granularity granularity,
                                                                       long fromInclusiveTimestamp,
                                                                       long toExclusiveTimestamp) {
         String sql = String.format(SQL_SELECT_METRIC_POINTS_BY_ID_BETWEEN_TIMESTAMP, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setInt(1, metricId);
+            statement.setString(1, metricId);
             statement.setTimestamp(2, new Timestamp(fromInclusiveTimestamp));
             statement.setTimestamp(3, new Timestamp(toExclusiveTimestamp));
             ResultSet resultSet = statement.executeQuery();
@@ -455,14 +455,14 @@ public class PointH2Repository extends H2Repository implements PointRepository {
     }
 
     @Override
-    public <T> MetricPoints<T> selectLastMetricPointsById(int metricId,
+    public <T> MetricPoints<T> selectLastMetricPointsById(String metricId,
                                                           Granularity granularity,
                                                           int qty) {
         String sql = String.format(SQL_SELECT_TOP_METRIC_POINTS_BY_ID, granularity) + SQL_ORDER_BY_METRIC_ID_AND_POINT_AGGREGATION_AND_TIMESTAMP_DESC;
 
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, qty);
-            statement.setInt(2, metricId);
+            statement.setString(2, metricId);
             ResultSet resultSet = statement.executeQuery();
 
             return buildMetricPoints(resultSet);
@@ -684,7 +684,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
         Point<T> point = metricPoint.getPoint();
 
         try (PreparedStatement statement = getConnection().prepareStatement(SQL_MERGE_RAW_POINT)) {
-            statement.setInt(1, metric.getId());
+            statement.setString(1, metric.getId());
             statement.setTimestamp(2, new Timestamp(point.getTimestamp()));
             statement.setBytes(3, metric.valueToBytes(point.getValue()));
             statement.execute();
@@ -702,7 +702,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
                 .forEach((aggregation, point) -> point
                         .forEach((timestamp, value) -> {
                             try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-                                statement.setInt(1, metric.getId());
+                                statement.setString(1, metric.getId());
                                 statement.setTimestamp(2, new Timestamp(timestamp));
                                 statement.setString(3, aggregation);
                                 statement.setBytes(4, metric.valueToBytes(value));
@@ -756,7 +756,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
         String aggregation;
 
         while (resultSet.next()) {
-            Integer id = resultSet.getInt("id");
+            String id = resultSet.getString("id");
             String name = resultSet.getString("name");
             String type = resultSet.getString("type");
             Long timestamp = resultSet.getTimestamp("timestamp").getTime();
@@ -789,7 +789,7 @@ public class PointH2Repository extends H2Repository implements PointRepository {
         String aggregation;
 
         if (resultSet.next()) {
-            Integer id = resultSet.getInt("id");
+            String id = resultSet.getString("id");
             String name = resultSet.getString("name");
             String type = resultSet.getString("type");
             Map<String, String> tags = tagRepository.selectTagsByMetricId(id);

@@ -16,10 +16,9 @@ import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Interval;
 import com.inspiring.pugtsdb.time.Retention;
-import java.io.Closeable;
 import java.util.List;
 
-public abstract class PugTSDB implements Closeable {
+public abstract class PugTSDB implements AutoCloseable {
 
     protected final Repositories repositories;
     protected final RollUpScheduler rollUpScheduler;

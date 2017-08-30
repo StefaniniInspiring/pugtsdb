@@ -3,14 +3,18 @@ package com.inspiring.pugtsdb;
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.repository.rocks.RocksRepositories;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.CompactionOptionsUniversal;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
@@ -18,10 +22,10 @@ import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.inspiring.pugtsdb.repository.rocks.RocksRepository.COLUMN_FAMILY_METRIC;
 import static com.inspiring.pugtsdb.util.Collections.isEmpty;
 import static com.inspiring.pugtsdb.util.Strings.isBlank;
 import static java.lang.System.currentTimeMillis;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toConcurrentMap;
 import static java.util.stream.Collectors.toList;
 
@@ -32,6 +36,7 @@ public class PugTSDBOverRocks extends PugTSDB {
     private final RocksDB db;
     private final DBOptions dbOptions;
     private final ColumnFamilyOptions columnFamilyOptions;
+    private final BlockBasedTableConfig blockBasedTableOptions;
     private final Map<String, ColumnFamilyHandle> columnFamilyCache;
 
     public PugTSDBOverRocks(String storagePath) {
@@ -41,10 +46,25 @@ public class PugTSDBOverRocks extends PugTSDB {
             throw new PugIllegalArgumentException("Database storage path cannot be null nor empty");
         }
 
-        this.dbOptions = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true).setMaxOpenFiles(Integer.MAX_VALUE);
-        this.columnFamilyOptions = new ColumnFamilyOptions();
+        this.dbOptions = new DBOptions()
+                .setCreateIfMissing(true)
+                .setCreateMissingColumnFamilies(true)
+                .setMaxOpenFiles(999999)
+                .setSkipStatsUpdateOnDbOpen(true)
+                .setCompactionReadaheadSize(2 * 1024 * 1024)
+                .setNewTableReaderForCompactionInputs(true);
+        this.columnFamilyOptions = new ColumnFamilyOptions()
+                .setOptimizeFiltersForHits(true)
+                .setCompactionStyle(CompactionStyle.UNIVERSAL)
+                .setCompressionType(CompressionType.LZ4_COMPRESSION)
+                .setCompactionOptionsUniversal(new CompactionOptionsUniversal()
+                                                       .setMaxSizeAmplificationPercent(100)
+                                                       .setCompressionSizePercent(-1));
+        this.blockBasedTableOptions = new BlockBasedTableConfig()
+                .setCacheIndexAndFilterBlocks(true)
+                .setBlockSize(256 * 1024);
 
-        try (Options options = new Options(dbOptions, columnFamilyOptions)) {
+        try (Options options = new Options(dbOptions, columnFamilyOptions).setTableFormatConfig(blockBasedTableOptions)) {
             log.debug("RocksDB opening...");
             long openStart = currentTimeMillis();
 
@@ -55,7 +75,8 @@ public class PugTSDBOverRocks extends PugTSDB {
             List<byte[]> columnFamiliesNames = RocksDB.listColumnFamilies(options, storagePath);
             List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
             List<ColumnFamilyDescriptor> columnFamilyDescriptors = isEmpty(columnFamiliesNames)
-                                                                   ? singletonList(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions))
+                                                                   ? Arrays.asList(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions),
+                                                                                   new ColumnFamilyDescriptor(COLUMN_FAMILY_METRIC.getBytes(), columnFamilyOptions))
                                                                    : columnFamiliesNames.stream()
                                                                            .map(name -> new ColumnFamilyDescriptor(name, columnFamilyOptions))
                                                                            .collect(toList());
@@ -90,7 +111,10 @@ public class PugTSDBOverRocks extends PugTSDB {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws Exception {
+        log.trace("Closing scheduled roll ups...");
+        rollUpScheduler.close();
+
         log.trace("RocksDB closing...");
         long closeStart = currentTimeMillis();
 
@@ -106,6 +130,6 @@ public class PugTSDBOverRocks extends PugTSDB {
         log.trace("RocksDB closing column families options...");
         columnFamilyOptions.close();
 
-        log.trace("RocksDB closed. Took={}ms", currentTimeMillis() - closeStart);
+        log.debug("RocksDB closed. Took={}ms", currentTimeMillis() - closeStart);
     }
 }

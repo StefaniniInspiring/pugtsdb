@@ -12,7 +12,7 @@ public interface PointRepository extends Repository {
 
     List<String> selectAggregationNames(String metricName, Granularity granularity);
 
-    <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(int metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp);
+    <T> MetricPoints<T> selectRawMetricPointsByIdBetweenTimestamp(String metricId, long fromInclusiveTimestamp, long toExclusiveTimestamp);
 
     <T> List<MetricPoints<T>> selectRawMetricsPointsByNameBetweenTimestamp(String metricName, long fromInclusiveTimestamp, long toExclusiveTimestamp);
 
@@ -21,23 +21,23 @@ public interface PointRepository extends Repository {
                                                                                   long fromInclusiveTimestamp,
                                                                                   long toExclusiveTimestamp);
 
-    <T> MetricPoints<T> selectMetricPointsByIdAndAggregationBetweenTimestamp(int metricId,
+    <T> MetricPoints<T> selectMetricPointsByIdAndAggregationBetweenTimestamp(String metricId,
                                                                              String aggregation,
                                                                              Granularity granularity,
                                                                              long fromInclusiveTimestamp,
                                                                              long toExclusiveTimestamp);
 
-    <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(int metricId,
+    <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(String metricId,
                                                                  String aggregation,
                                                                  Granularity granularity,
                                                                  int qty);
 
-    <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(int metricId,
+    <T> MetricPoints<T> selectMetricPointsByIdBetweenTimestamp(String metricId,
                                                                Granularity granularity,
                                                                long fromInclusiveTimestamp,
                                                                long toExclusiveTimestamp);
 
-    <T> MetricPoints<T> selectLastMetricPointsById(int metricId,
+    <T> MetricPoints<T> selectLastMetricPointsById(String metricId,
                                                    Granularity granularity,
                                                    int qty);
 
