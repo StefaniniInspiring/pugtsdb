@@ -4,6 +4,10 @@ import java.util.stream.IntStream;
 
 public class Strings {
 
+    public static boolean isNotBlank(final CharSequence cs) {
+        return !isBlank(cs);
+    }
+
     public static boolean isBlank(final CharSequence cs) {
         int len;
 

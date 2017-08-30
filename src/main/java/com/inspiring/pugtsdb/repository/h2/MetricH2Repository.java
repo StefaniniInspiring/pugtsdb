@@ -1,5 +1,6 @@
 package com.inspiring.pugtsdb.repository.h2;
 
+import com.inspiring.pugtsdb.exception.PugNotImplementedException;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.MetricRepository;
 import com.inspiring.pugtsdb.repository.TagRepository;
@@ -91,6 +92,11 @@ public class MetricH2Repository extends H2Repository implements MetricRepository
         }
 
         return names;
+    }
+
+    @Override
+    public <T> Metric<T> selectMetricById(String id) {
+        throw new PugNotImplementedException(getClass().getSimpleName() + ".selectMetricById(String id) not implemented yet");
     }
 
     @Override

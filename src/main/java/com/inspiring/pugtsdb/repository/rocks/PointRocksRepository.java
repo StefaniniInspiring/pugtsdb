@@ -10,6 +10,7 @@ import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.time.Granularity;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.RocksDB;
@@ -58,6 +59,8 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
                                     : pointId.timestamp;
                     }
                 }
+            } catch (Exception e) {
+                throw new PugException(format("Cannot select max point timestamp for metric {0}, aggregated as {1} in {2}", metricName, aggregation, granularity), e);
             }
         }
 
@@ -66,7 +69,25 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
     @Override
     public List<String> selectAggregationNames(String metricName, Granularity granularity) {
-        throw new PugNotImplementedException("Selecting aggregation names using RocksDB is not implemented yet");
+        Set<String> metricIds = metricRepository.getMetricIdsFromCache(metricName);
+
+        return columnFamilyCache.entrySet()
+                .stream()
+                .filter(cf -> cf.getKey().startsWith(COLUMN_FAMILY_POINT))
+                .filter(cf -> cf.getKey().endsWith(granularity.toString()))
+                .filter(cf -> metricIds.stream()
+                        .map(id -> {
+                            try {
+                                byte[] bytes = db.get(cf.getValue(), PointId.of(id, FIRST_TIMESTAMP).toBytes());
+                                return bytes != null && PointId.from(bytes).metricId.equals(id);
+                            } catch (RocksDBException e) {
+                                return false;
+                            }
+                        })
+                        .findFirst()
+                        .orElse(false))
+                .map(cf -> cf.getKey().substring(cf.getKey().indexOf(SEP) + 1, cf.getKey().lastIndexOf(SEP)))
+                .collect(toList());
     }
 
     @Override
@@ -98,7 +119,29 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
     @Override
     public <T> MetricPoints<T> selectLastMetricPointsByIdAndAggregation(String metricId, String aggregation, Granularity granularity, int qty) {
-        return null;
+        Metric<T> metric = metricRepository.selectMetricById(metricId);
+
+        if (metric == null) {
+            return null;
+        }
+
+        MetricPoints<T> metricPoints = new MetricPoints<>(metric);
+
+        try (RocksIterator iterator = db.newIterator(getPointColumnFamily(aggregation, granularity))) {
+            for (iterator.seek(PointId.of(metricId, LAST_TIMESTAMP).toBytes()); iterator.isValid() && metricPoints.getPoints().size() < qty; iterator.prev()) {
+                PointId pointId = PointId.from(iterator.key());
+
+                if (pointId == null || !pointId.metricId.equals(metricId)) {
+                    break;
+                }
+
+                metricPoints.put(aggregation, pointId.timestamp, iterator.value());
+            }
+        } catch (Exception e) {
+            throw new PugException(format("Cannot select last {3} metric {0} points aggregated as {1} in {2}", metricId, aggregation, granularity, qty), e);
+        }
+
+        return metricPoints;
     }
 
     @Override
@@ -136,6 +179,13 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
                             T value = metric.valueFromBytes(iterator.value());
                             metricPoints.put(aggregation, timestamp, value);
                         }
+                    } catch (Exception e) {
+                        throw new PugException(format("Cannot select metric {0} points aggregated as {1} in {2} from {3,date} {3,time} to {4,date} {4,time}",
+                                                      metricName,
+                                                      aggregation,
+                                                      granularity,
+                                                      fromInclusiveTimestamp,
+                                                      toExclusiveTimestamp), e);
                     }
 
                     return metricPoints;

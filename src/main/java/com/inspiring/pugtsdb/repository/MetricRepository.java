@@ -15,5 +15,7 @@ public interface MetricRepository extends Repository {
 
     <T> List<Metric<T>> selectMetricsByName(String name);
 
+    <T> Metric<T> selectMetricById(String id);
+
     void insertMetric(Metric<?> metric);
 }

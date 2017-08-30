@@ -16,6 +16,7 @@ public class RocksRepository implements Repository {
 
     public static final String COLUMN_FAMILY_METRIC = "metric";
     public static final String COLUMN_FAMILY_POINT = "point";
+    static final char SEP = ':';
 
     protected RocksDB db;
     protected ColumnFamilyOptions columnFamilyOptions;
@@ -46,7 +47,7 @@ public class RocksRepository implements Repository {
     }
 
     protected ColumnFamilyHandle getPointColumnFamily(String aggregation, Granularity granularity) {
-        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_POINT + ':' + aggregation + ':' + granularity, this::createColumnFamily);
+        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_POINT + SEP + aggregation + SEP + granularity, this::createColumnFamily);
     }
 
     protected ColumnFamilyHandle getMetricColumnFamily() {

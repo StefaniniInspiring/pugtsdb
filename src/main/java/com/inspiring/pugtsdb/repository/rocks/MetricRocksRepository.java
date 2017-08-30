@@ -56,6 +56,36 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
     }
 
     @Override
+    public <T> Metric<T> selectMetricById(String id) {
+        String name = metricIdCache.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().contains(id))
+                .map(entry -> entry.getKey())
+                .findFirst()
+                .orElse(null);
+
+        if (name == null) {
+            return null;
+        }
+
+        try {
+            byte[] bytes = db.get(getMetricColumnFamily(), serialize(name));
+
+            if (bytes == null) {
+                return null;
+            }
+
+            MetaMetric meta = deserialize(bytes, MetaMetric.class);
+            Constructor<Metric<T>> constructor = (Constructor<Metric<T>>) meta.getType().getConstructor(String.class, String.class, Map.class);
+            Map<String, String> tags = meta.getTagsById().get(id);
+
+            return constructor.newInstance(id, name, tags);
+        } catch (Exception e) {
+            throw new PugException("Cannot select metric by ID " + id, e);
+        }
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <T> List<Metric<T>> selectMetricsByName(String name) {
         try {
