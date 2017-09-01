@@ -7,6 +7,7 @@ import com.inspiring.pugtsdb.repository.rocks.bean.MetaMetric;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,18 +15,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
 import static com.inspiring.pugtsdb.util.Serializer.deserialize;
 import static com.inspiring.pugtsdb.util.Serializer.serialize;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 public class MetricRocksRepository extends RocksRepository implements MetricRepository {
 
     private final Map<String, Set<String>> metricIdCache = new ConcurrentHashMap<>();
-    private final Map<String, Object> metricNameLock = new ConcurrentHashMap<>();
 
     public MetricRocksRepository() {
         super();
@@ -46,7 +46,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
     public List<String> selectMetricNames() {
         List<String> names = new ArrayList<>();
 
-        try (RocksIterator iterator = db.newIterator(getMetricColumnFamily())) {
+        try (RocksIterator iterator = db.newIterator(fromMetricColumnFamily())) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
                 names.add(deserialize(iterator.key(), String.class));
             }
@@ -56,6 +56,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> Metric<T> selectMetricById(String id) {
         String name = metricIdCache.entrySet()
                 .stream()
@@ -69,7 +70,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
         }
 
         try {
-            byte[] bytes = db.get(getMetricColumnFamily(), serialize(name));
+            byte[] bytes = db.get(fromMetricColumnFamily(), serialize(name));
 
             if (bytes == null) {
                 return null;
@@ -89,7 +90,7 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
     @SuppressWarnings("unchecked")
     public <T> List<Metric<T>> selectMetricsByName(String name) {
         try {
-            byte[] metaBytes = db.get(getMetricColumnFamily(), serialize(name));
+            byte[] metaBytes = db.get(fromMetricColumnFamily(), serialize(name));
 
             if (metaBytes == null) {
                 return emptyList();
@@ -116,31 +117,47 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
 
     @Override
     public void insertMetric(Metric<?> metric) {
-        try {
-            synchronized (metricNameLock.computeIfAbsent(metric.getName(), name -> new Object())) {
+        metricIdCache.compute(metric.getName(), (name, ids) -> {
+            try {
                 byte[] nameBytes = serialize(metric.getName());
-                byte[] metaBytes = db.get(getMetricColumnFamily(), nameBytes);
+                byte[] metaBytes = db.get(fromMetricColumnFamily(), nameBytes);
                 MetaMetric meta = metaBytes != null
                                   ? deserialize(metaBytes, MetaMetric.class)
                                   : new MetaMetric(metric.getClass());
 
                 meta.getTagsById().put(metric.getId(), new HashMap<>(metric.getTags()));
 
-                db.put(getMetricColumnFamily(), nameBytes, serialize(meta));
+                db.put(intoMetricColumnFamily(), nameBytes, serialize(meta));
 
-                putMetricIdOnCache(metric);
+                if (ids == null) {
+                    ids = new HashSet<>(meta.getTagsById().keySet());
+                } else {
+                    ids.add(metric.getId());
+                }
+            } catch (Exception e) {
+                throw new PugException("Cannot insert metric " + metric, e);
             }
-        } catch (Exception e) {
-            throw new PugException("Cannot insert metric " + metric, e);
-        }
-    }
 
-    boolean putMetricIdOnCache(Metric<?> metric) {
-        return getMetricIdsFromCache(metric.getName()).add(metric.getId());
+            return ids;
+        });
     }
 
     @SuppressWarnings("unchecked")
     Set<String> getMetricIdsFromCache(String metricName) {
-        return metricIdCache.computeIfAbsent(metricName, name -> selectMetricsByName(name).stream().map(Metric::getId).collect(toSet()));
+        return metricIdCache.computeIfAbsent(metricName, name -> {
+            try {
+                byte[] metaBytes = db.get(fromMetricColumnFamily(), serialize(name));
+
+                if (metaBytes == null) {
+                    return new HashSet<>();
+                }
+
+                MetaMetric meta = deserialize(metaBytes, MetaMetric.class);
+
+                return new HashSet<>(meta.getTagsById().keySet());
+            } catch (RocksDBException e) {
+                throw new PugException("Cannot populate cache with metric " + metricName + " IDs", e);
+            }
+        });
     }
 }

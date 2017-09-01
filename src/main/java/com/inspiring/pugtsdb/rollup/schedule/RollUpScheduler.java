@@ -19,7 +19,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.inspiring.pugtsdb.util.GlobPattern.isGlob;
+import static java.lang.Math.max;
 import static java.util.Comparator.comparing;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 
@@ -84,6 +86,7 @@ public class RollUpScheduler implements AutoCloseable {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void addRollUpListener(String metricName, String aggregationName, Granularity granularity, RollUpListener listener) {
         scheduledRollUps.values()
                 .stream()
@@ -148,7 +151,8 @@ public class RollUpScheduler implements AutoCloseable {
     private <T> ScheduledRollUp<T> scheduleRollUp(RollUp<T> rollUp) {
         long period = rollUp.getTargetGranularity().getValue();
         ChronoUnit unit = rollUp.getTargetGranularity().getUnit();
-        ScheduledFuture<?> scheduledFuture = scheduledThreadPool.scheduleAtFixedRate(rollUp, INITIAL_DELAY, SECONDS, period, unit);
+        int delay = max(rollUp.getTargetGranularity().ordinal() - 1, 1);
+        ScheduledFuture<?> scheduledFuture = scheduledThreadPool.scheduleAtFixedRate(rollUp, delay, MINUTES, period, unit);
 
         return new ScheduledRollUp<>(rollUp, scheduledFuture);
     }
@@ -184,6 +188,7 @@ public class RollUpScheduler implements AutoCloseable {
             this.retention = retention;
         }
 
+        @SuppressWarnings("unchecked")
         RollUp<T> build(String metricName, Map<RollUp<?>, RollUpListener> rollUpListeners) {
             RollUp<T> rollUp = new RollUp<>(metricName, aggregation, sourceGranularity, targetGranularity, retention, repositories);
             rollUp.setListener(rollUpListeners.get(rollUp));

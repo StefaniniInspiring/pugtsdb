@@ -10,17 +10,19 @@ import java.util.Map;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 
 public class RocksRepository implements Repository {
 
-    public static final String COLUMN_FAMILY_METRIC = "metric";
-    public static final String COLUMN_FAMILY_POINT = "point";
+    public static final String METRIC_COLUMN_FAMILY = "metric";
+    public static final String POINT_COLUMN_FAMILY = "point";
     static final char SEP = ':';
 
     protected RocksDB db;
     protected ColumnFamilyOptions columnFamilyOptions;
     protected Map<String, ColumnFamilyHandle> columnFamilyCache;
+    protected ColumnFamilyHandle defaultColumnFamily;
 
     public RocksRepository() {
         super();
@@ -36,6 +38,7 @@ public class RocksRepository implements Repository {
         this.db = db;
         this.columnFamilyOptions = columnFamilyOptions;
         this.columnFamilyCache = columnFamilyCache;
+        this.defaultColumnFamily = columnFamilyCache.get(new String(RocksDB.DEFAULT_COLUMN_FAMILY));
     }
 
     protected ColumnFamilyHandle createColumnFamily(String name) {
@@ -46,12 +49,24 @@ public class RocksRepository implements Repository {
         }
     }
 
-    protected ColumnFamilyHandle getPointColumnFamily(String aggregation, Granularity granularity) {
-        return columnFamilyCache.computeIfAbsent(COLUMN_FAMILY_POINT + SEP + aggregation + SEP + granularity, this::createColumnFamily);
+    protected ColumnFamilyHandle intoPointColumnFamily(String aggregation, Granularity granularity) {
+        return columnFamilyCache.computeIfAbsent(POINT_COLUMN_FAMILY + SEP + aggregation + SEP + granularity, this::createColumnFamily);
     }
 
-    protected ColumnFamilyHandle getMetricColumnFamily() {
-        return columnFamilyCache.get(COLUMN_FAMILY_METRIC);
+    protected ColumnFamilyHandle fromPointColumnFamily(String aggregation, Granularity granularity) {
+        return columnFamilyCache.getOrDefault(POINT_COLUMN_FAMILY + SEP + aggregation + SEP + granularity, defaultColumnFamily);
+    }
+
+    protected ColumnFamilyHandle intoMetricColumnFamily() {
+        return columnFamilyCache.computeIfAbsent(METRIC_COLUMN_FAMILY, this::createColumnFamily);
+    }
+
+    protected ColumnFamilyHandle fromMetricColumnFamily() {
+        return columnFamilyCache.getOrDefault(METRIC_COLUMN_FAMILY, defaultColumnFamily);
+    }
+
+    protected ReadOptions newFastReadOptions() {
+        return new ReadOptions().setIgnoreRangeDeletions(true).setVerifyChecksums(false);
     }
 
     @Override

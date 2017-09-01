@@ -7,26 +7,29 @@ import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugNotImplementedException;
 import com.inspiring.pugtsdb.metric.Metric;
 import com.inspiring.pugtsdb.repository.PointRepository;
+import com.inspiring.pugtsdb.repository.rocks.bean.PointId;
 import com.inspiring.pugtsdb.time.Granularity;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.WriteOptions;
 
-import static com.inspiring.pugtsdb.util.Serializer.deserialize;
-import static com.inspiring.pugtsdb.util.Serializer.serialize;
 import static java.lang.Math.max;
 import static java.text.MessageFormat.format;
+import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
 public class PointRocksRepository extends RocksRepository implements PointRepository {
 
-    private static final String LAST_TIMESTAMP = "9999999999999";
-    private static final String FIRST_TIMESTAMP = "0000000000000";
+    private static final Long LAST_TIMESTAMP = 9999999999999L;
+    private static final Long FIRST_TIMESTAMP = 0L;
 
     private final MetricRocksRepository metricRepository;
 
@@ -46,22 +49,23 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
     public Long selectMaxPointTimestampByNameAndAggregation(String metricName, String aggregation, Granularity granularity) {
         Long timestamp = null;
 
-        for (String metricId : metricRepository.getMetricIdsFromCache(metricName)) {
-            try (RocksIterator iterator = db.newIterator(getPointColumnFamily(aggregation, granularity))) {
-                iterator.seek(PointId.of(metricId, LAST_TIMESTAMP).toBytes());
+        try (ReadOptions options = newFastReadOptions().setIgnoreRangeDeletions(false);
+             RocksIterator iterator = db.newIterator(fromPointColumnFamily(aggregation, granularity), options)) {
+            for (String metricId : metricRepository.getMetricIdsFromCache(metricName)) {
+                iterator.seekForPrev(PointId.of(metricId, LAST_TIMESTAMP).toBytes());
 
                 if (iterator.isValid()) {
                     PointId pointId = PointId.from(iterator.key());
 
-                    if (pointId != null && pointId.metricId.equals(metricId)) {
+                    if (pointId.metricId.equals(metricId)) {
                         timestamp = timestamp != null
                                     ? max(timestamp, pointId.timestamp)
                                     : pointId.timestamp;
                     }
                 }
-            } catch (Exception e) {
-                throw new PugException(format("Cannot select max point timestamp for metric {0}, aggregated as {1} in {2}", metricName, aggregation, granularity), e);
             }
+        } catch (Exception e) {
+            throw new PugException(format("Cannot select max point timestamp for metric {0}, aggregated as {1} in {2}", metricName, aggregation, granularity), e);
         }
 
         return timestamp;
@@ -73,19 +77,22 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
         return columnFamilyCache.entrySet()
                 .stream()
-                .filter(cf -> cf.getKey().startsWith(COLUMN_FAMILY_POINT))
+                .filter(cf -> cf.getKey().startsWith(POINT_COLUMN_FAMILY))
                 .filter(cf -> cf.getKey().endsWith(granularity.toString()))
-                .filter(cf -> metricIds.stream()
-                        .map(id -> {
-                            try {
-                                byte[] bytes = db.get(cf.getValue(), PointId.of(id, FIRST_TIMESTAMP).toBytes());
-                                return bytes != null && PointId.from(bytes).metricId.equals(id);
-                            } catch (RocksDBException e) {
-                                return false;
+                .filter(cf -> {
+                    try (ReadOptions options = newFastReadOptions().setIgnoreRangeDeletions(false);
+                         RocksIterator iterator = db.newIterator(cf.getValue(), options)) {
+                        for (String metricId : metricIds) {
+                            iterator.seek(PointId.of(metricId, FIRST_TIMESTAMP).toBytes());
+
+                            if (iterator.isValid() && PointId.from(iterator.key()).metricId.equals(metricId)) {
+                                return true;
                             }
-                        })
-                        .findFirst()
-                        .orElse(false))
+                        }
+
+                        return false;
+                    }
+                })
                 .map(cf -> cf.getKey().substring(cf.getKey().indexOf(SEP) + 1, cf.getKey().lastIndexOf(SEP)))
                 .collect(toList());
     }
@@ -126,16 +133,20 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
         }
 
         MetricPoints<T> metricPoints = new MetricPoints<>(metric);
+        Map<String, Map<Long, T>> points = metricPoints.getPoints();
 
-        try (RocksIterator iterator = db.newIterator(getPointColumnFamily(aggregation, granularity))) {
-            for (iterator.seek(PointId.of(metricId, LAST_TIMESTAMP).toBytes()); iterator.isValid() && metricPoints.getPoints().size() < qty; iterator.prev()) {
+        try (ReadOptions options = newFastReadOptions();
+             RocksIterator iterator = db.newIterator(fromPointColumnFamily(aggregation, granularity), options)) {
+            for (iterator.seekForPrev(PointId.of(metricId, LAST_TIMESTAMP).toBytes());
+                 iterator.isValid() && points.getOrDefault(aggregation, emptyMap()).size() < qty;
+                 iterator.prev()) {
                 PointId pointId = PointId.from(iterator.key());
 
-                if (pointId == null || !pointId.metricId.equals(metricId)) {
+                if (pointId.metricId.equals(metricId)) {
+                    metricPoints.put(aggregation, pointId.timestamp, iterator.value());
+                } else {
                     break;
                 }
-
-                metricPoints.put(aggregation, pointId.timestamp, iterator.value());
             }
         } catch (Exception e) {
             throw new PugException(format("Cannot select last {3} metric {0} points aggregated as {1} in {2}", metricId, aggregation, granularity, qty), e);
@@ -165,13 +176,14 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
                 .map(metric -> {
                     MetricPoints<T> metricPoints = new MetricPoints<>(metric);
 
-                    try (RocksIterator iterator = db.newIterator(getPointColumnFamily(aggregation, granularity))) {
+                    try (ReadOptions options = newFastReadOptions();
+                         RocksIterator iterator = db.newIterator(fromPointColumnFamily(aggregation, granularity), options)) {
                         byte[] fromPointId = PointId.of(metric.getId(), fromInclusiveTimestamp).toBytes();
 
                         for (iterator.seek(fromPointId); iterator.isValid(); iterator.next()) {
                             PointId pointId = PointId.from(iterator.key());
 
-                            if (pointId == null || !pointId.metricId.equals(metric.getId()) || pointId.timestamp >= toExclusiveTimestamp) {
+                            if (!pointId.metricId.equals(metric.getId()) || pointId.timestamp >= toExclusiveTimestamp) {
                                 break;
                             }
 
@@ -233,14 +245,13 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
     @Override
     public <T> void upsertMetricPoint(MetricPoint<T> metricPoint) {
-        try {
+        try (WriteOptions options = new WriteOptions().setSync(false)) {
             Metric<T> metric = metricPoint.getMetric();
             Point<T> point = metricPoint.getPoint();
             byte[] idBytes = PointId.of(metric.getId(), point.getTimestamp()).toBytes();
             byte[] valueBytes = metric.valueToBytes(point.getValue());
-            ColumnFamilyHandle pointColumnFamily = getPointColumnFamily(null, null);
 
-            db.put(pointColumnFamily, idBytes, valueBytes);
+            db.put(intoPointColumnFamily(null, null), options, idBytes, valueBytes);
         } catch (Exception e) {
             throw new PugException("Cannot upsert metric point " + metricPoint, e);
         }
@@ -253,14 +264,14 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
             Map<String, Map<Long, T>> points = metricPoints.getPoints();
 
             points.forEach((aggregation, point) -> {
-                ColumnFamilyHandle pointColumnFamily = getPointColumnFamily(aggregation, granularity);
+                ColumnFamilyHandle pointColumnFamily = intoPointColumnFamily(aggregation, granularity);
 
                 point.forEach((timestamp, value) -> {
                     byte[] idBytes = PointId.of(metric.getId(), timestamp).toBytes();
                     byte[] valueBytes = metric.valueToBytes(value);
 
-                    try {
-                        db.put(pointColumnFamily, idBytes, valueBytes);
+                    try (WriteOptions options = new WriteOptions().setSync(false)) {
+                        db.put(pointColumnFamily, options, idBytes, valueBytes);
                     } catch (RocksDBException e) {
                         throw new PugException("Cannot upsert value " + value + " on timestamp " + timestamp, e);
                     }
@@ -278,55 +289,48 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
     @Override
     public void deletePointsByNameAndAggregationBeforeTime(String metricName, String aggregation, Granularity granularity, long time) {
-        try {
-            for (String metricId : metricRepository.getMetricIdsFromCache(metricName)) {
-                ColumnFamilyHandle pointColumnFamily = getPointColumnFamily(aggregation, granularity);
-                byte[] fromInclusiveId = PointId.of(metricId, FIRST_TIMESTAMP).toBytes();
-                byte[] toExclusiveId = PointId.of(metricId, time - 1).toBytes();
+        ColumnFamilyHandle fromPointColumnFamily = fromPointColumnFamily(aggregation, granularity);
 
-                db.deleteRange(pointColumnFamily, fromInclusiveId, toExclusiveId);
+        try (ReadOptions options = newFastReadOptions().setIgnoreRangeDeletions(false);
+             RocksIterator iterator = db.newIterator(fromPointColumnFamily, options)) {
+            for (String metricId : metricRepository.getMetricIdsFromCache(metricName)) {
+                byte[] fromInclusiveId = null;
+                byte[] toExclusiveId = null;
+
+                iterator.seek(PointId.of(metricId, FIRST_TIMESTAMP).toBytes());
+
+                if (iterator.isValid()) {
+                    PointId pointId = PointId.from(iterator.key());
+
+                    if (pointId.metricId.equals(metricId) && pointId.timestamp < time) {
+                        fromInclusiveId = iterator.key();
+                    }
+                }
+
+                if (fromInclusiveId == null) {
+                    continue;
+                }
+
+                iterator.seekForPrev(PointId.of(metricId, time).toBytes());
+
+                if (iterator.isValid()) {
+                    PointId pointId = PointId.from(iterator.key());
+
+                    if (pointId.metricId.equals(metricId) && pointId.timestamp < time) {
+                        toExclusiveId = iterator.key();
+                    }
+                }
+
+                try (WriteOptions writeOptions = new WriteOptions().setNoSlowdown(true).setSync(false)) {
+                    if (toExclusiveId == null || Arrays.equals(fromInclusiveId, toExclusiveId)) {
+                        db.singleDelete(fromPointColumnFamily, writeOptions, fromInclusiveId);
+                    } else {
+                        db.deleteRange(fromPointColumnFamily, writeOptions, fromInclusiveId, toExclusiveId);
+                    }
+                }
             }
         } catch (Exception e) {
             throw new PugException(format("Cannot delete metric {0} points aggregated as {1} in {2} before {3}", metricName, aggregation, granularity, time), e);
-        }
-    }
-
-    private static class PointId {
-
-        String metricId;
-        Long timestamp;
-
-        static PointId of(String metricId, Long timestamp) {
-            PointId pointId = new PointId();
-            pointId.metricId = metricId;
-            pointId.timestamp = timestamp;
-
-            return pointId;
-        }
-
-        static PointId of(String metricId, String timestamp) {
-            PointId pointId = new PointId();
-            pointId.metricId = metricId;
-            pointId.timestamp = Long.valueOf(timestamp);
-
-            return pointId;
-        }
-
-        static PointId from(byte[] bytes) {
-            return bytes == null ? null : from(deserialize(bytes, String.class));
-        }
-
-        static PointId from(String string) {
-            return of(string.substring(0, Metric.ID_LENGTH), string.substring(Metric.ID_LENGTH));
-        }
-
-        @Override
-        public String toString() {
-            return metricId.concat(timestamp.toString());
-        }
-
-        public byte[] toBytes() {
-            return serialize(toString());
         }
     }
 }

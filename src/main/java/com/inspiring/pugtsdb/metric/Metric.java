@@ -1,15 +1,14 @@
 package com.inspiring.pugtsdb.metric;
 
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
+import com.inspiring.pugtsdb.util.Strings;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.IntStream;
 
 import static com.inspiring.pugtsdb.util.MurmurHash3.murmurhash3_x86_32;
 import static com.inspiring.pugtsdb.util.Strings.isBlank;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.stream.Collectors.joining;
 
 public abstract class Metric<T> {
 
@@ -63,9 +62,8 @@ public abstract class Metric<T> {
 
     private static String newId(String name, Map<String, String> tags) {
         String rawId = name.concat(tags.toString());
-        String hashId = String.valueOf(murmurhash3_x86_32(rawId, 0, rawId.length(), rawId.length()));
-        String rightPad = IntStream.range(0, ID_LENGTH - hashId.length()).mapToObj(value -> "x").collect(joining());
+        int hashId = murmurhash3_x86_32(rawId, 0, rawId.length(), rawId.length());
 
-        return hashId.concat(rightPad);
+        return Strings.format(hashId, ID_LENGTH);
     }
 }

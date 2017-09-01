@@ -52,7 +52,7 @@ public class RollUp<T> implements Runnable {
         this.targetGranularity = targetGranularity;
         this.pointRepository = repositories.getPointRepository();
         this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
-        this.rawPurger = sourceGranularity == null ? new RawPointPurger(metricName, pointRepository, Retention.of(2, targetGranularity.getUnit())) : null;
+        this.rawPurger = sourceGranularity == null ? new RawPointPurger(metricName, pointRepository, Retention.of(1, targetGranularity.getUnit())) : null;
 
         lastTimestamp = pointRepository.selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
@@ -117,10 +117,14 @@ public class RollUp<T> implements Runnable {
             lastTimestamp = nextTimestamp;
         }
 
+        long purgStartTime = currentTimeMillis();
         purger.run();
+        log.trace("Roll up per {} purged {}: Took={}", targetGranularity, this, currentTimeMillis() - purgStartTime);
 
         if (rawPurger != null) {
+            long rawPurgStartTime = currentTimeMillis();
             rawPurger.run();
+            log.trace("Roll up per {} purged (raw) {}: Took={}", targetGranularity, this, currentTimeMillis() - rawPurgStartTime);
         }
 
         if (listener != null && isNotEmpty(data.metricsPoints)) {
