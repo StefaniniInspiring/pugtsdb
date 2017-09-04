@@ -323,7 +323,7 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
 
                 try (WriteOptions writeOptions = new WriteOptions().setNoSlowdown(true).setSync(false)) {
                     if (toExclusiveId == null || Arrays.equals(fromInclusiveId, toExclusiveId)) {
-                        db.singleDelete(fromPointColumnFamily, writeOptions, fromInclusiveId);
+                        db.delete(fromPointColumnFamily, writeOptions, fromInclusiveId);
                     } else {
                         db.deleteRange(fromPointColumnFamily, writeOptions, fromInclusiveId, toExclusiveId);
                     }

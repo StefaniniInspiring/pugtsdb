@@ -46,28 +46,20 @@ public class Serializer {
         Serializer.kryoSupplier = kryoSupplier;
     }
 
-    private static Supplier<Kryo> defaultKryoSupplier() {
+    public static Supplier<Kryo> defaultKryoSupplier() {
         return () -> {
             Kryo kryo = new Kryo();
             kryo.setReferences(false);
-//        kryo.setRegistrationRequired(true);
-            kryo.register(Object.class);
-            kryo.register(Boolean.class);
-            kryo.register(String.class);
-            kryo.register(Byte.class);
-            kryo.register(Short.class);
-            kryo.register(Integer.class);
-            kryo.register(Double.class);
-            kryo.register(Float.class);
-            kryo.register(Long.class);
-            kryo.register(BigInteger.class);
-            kryo.register(BigDecimal.class);
-            kryo.register(ArrayList.class);
-            kryo.register(HashMap.class);
-            kryo.register(TreeMap.class);
-            kryo.register(HashSet.class);
-            kryo.register(TreeSet.class);
-            kryo.register(MetaMetric.class);
+            kryo.setRegistrationRequired(false);
+            // Do not change the registration order below: https://github.com/EsotericSoftware/kryo#registration
+            kryo.register(BigInteger.class, 20);
+            kryo.register(BigDecimal.class, 21);
+            kryo.register(ArrayList.class, 22);
+            kryo.register(HashMap.class, 23);
+            kryo.register(TreeMap.class, 24);
+            kryo.register(HashSet.class, 25);
+            kryo.register(TreeSet.class, 26);
+            kryo.register(MetaMetric.class, 27);
 
             return kryo;
         };

@@ -12,6 +12,7 @@ import com.inspiring.pugtsdb.time.Retention;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,11 +128,13 @@ public class RollUp<T> implements Runnable {
             log.trace("Roll up per {} purged (raw) {}: Took={}", targetGranularity, this, currentTimeMillis() - rawPurgStartTime);
         }
 
-        if (listener != null && isNotEmpty(data.metricsPoints)) {
+        if (listener != null && data.isNotEmpty()) {
+            long notifyStartTime = currentTimeMillis();
             runAsync(() -> listener.onRollUp(new RollUpEvent<>(metricName, aggregation.getName(), sourceGranularity, targetGranularity, data.metricsPoints)));
+            log.trace("Roll up per {} notified listener {}: Took={}", targetGranularity, this, currentTimeMillis() - notifyStartTime);
         }
 
-        log.trace("Roll up per {} done {}: Took={}ms", targetGranularity, this, currentTimeMillis() - runTimestamp);
+        log.debug("Roll up per {} done {}: Took={}ms", targetGranularity, this, currentTimeMillis() - runTimestamp);
     }
 
     private Data fetchSourceData(long nextTimestamp) {
@@ -212,6 +215,15 @@ public class RollUp<T> implements Runnable {
 
         boolean isRaw() {
             return sourceGranularity == null;
+        }
+
+        boolean isNotEmpty() {
+            return metricsPoints != null && metricsPoints.stream()
+                    .map(MetricPoints::getPoints)
+                    .anyMatch(points -> points.values()
+                            .stream()
+                            .filter(Objects::nonNull)
+                            .anyMatch(point -> !point.isEmpty()));
         }
     }
 }
