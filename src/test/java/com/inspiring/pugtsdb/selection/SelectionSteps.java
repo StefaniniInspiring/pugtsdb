@@ -16,7 +16,6 @@ import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.ParseException;
@@ -66,7 +65,7 @@ public class SelectionSteps {
     }
 
     @After
-    public void cleanup() throws SQLException {
+    public void cleanup() throws Exception {
         if (pugTSDB != null) {
             try (Statement statement = pugTSDB.getDataSource().getConnection().createStatement()) {
                 statement.execute(" DROP ALL OBJECTS DELETE FILES ");

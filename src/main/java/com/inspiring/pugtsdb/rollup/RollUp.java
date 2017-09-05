@@ -2,6 +2,8 @@ package com.inspiring.pugtsdb.rollup;
 
 import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.repository.PointRepository;
+import com.inspiring.pugtsdb.repository.Repositories;
+import com.inspiring.pugtsdb.repository.rocks.RocksRepositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpEvent;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
@@ -46,14 +48,20 @@ public class RollUp<T> implements Runnable {
                   Granularity sourceGranularity,
                   Granularity targetGranularity,
                   Retention retention,
-                  com.inspiring.pugtsdb.repository.Repositories repositories) {
+                  Repositories repositories) {
         this.metricName = metricName;
         this.aggregation = aggregation;
         this.sourceGranularity = sourceGranularity;
         this.targetGranularity = targetGranularity;
         this.pointRepository = repositories.getPointRepository();
-        this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
-        this.rawPurger = sourceGranularity == null ? new RawPointPurger(metricName, pointRepository, Retention.of(1, targetGranularity.getUnit())) : null;
+
+        if (repositories instanceof RocksRepositories) {
+            this.purger = null;
+            this.rawPurger = null;
+        } else {
+            this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
+            this.rawPurger = sourceGranularity == null ? new RawPointPurger(metricName, pointRepository, Retention.of(1, targetGranularity.getUnit())) : null;
+        }
 
         lastTimestamp = pointRepository.selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
@@ -94,23 +102,15 @@ public class RollUp<T> implements Runnable {
     @Override
     public void run() {
         long nextTimestamp = truncate(Instant.now(), targetGranularity.getUnit());
-        long runTimestamp = currentTimeMillis();
+        long runStartTime = currentTimeMillis();
         Data data;
 
-        log.trace("Roll up per {} running {}", targetGranularity, this);
+        log.trace("{} is rolling up...", this);
 
         try {
-            long fetchStartTime = currentTimeMillis();
             data = fetchSourceData(nextTimestamp);
-            log.trace("Roll up per {} fetched {}: Took={}", targetGranularity, this, currentTimeMillis() - fetchStartTime);
-
-            long aggregateStartTime = currentTimeMillis();
             aggregateData(data);
-            log.trace("Roll up per {} aggregated {}: Took={}", targetGranularity, this, currentTimeMillis() - aggregateStartTime);
-
-            long saveStartTime = currentTimeMillis();
             saveData(data);
-            log.trace("Roll up per {} saved {}: Took={}", targetGranularity, this, currentTimeMillis() - saveStartTime);
         } catch (Exception e) {
             log.error("Cannot perform {}", this, e);
             return;
@@ -118,26 +118,14 @@ public class RollUp<T> implements Runnable {
             lastTimestamp = nextTimestamp;
         }
 
-        long purgStartTime = currentTimeMillis();
-        purger.run();
-        log.trace("Roll up per {} purged {}: Took={}", targetGranularity, this, currentTimeMillis() - purgStartTime);
+        purgeExpiredData();
+        notifyListener(data);
 
-        if (rawPurger != null) {
-            long rawPurgStartTime = currentTimeMillis();
-            rawPurger.run();
-            log.trace("Roll up per {} purged (raw) {}: Took={}", targetGranularity, this, currentTimeMillis() - rawPurgStartTime);
-        }
-
-        if (listener != null && data.isNotEmpty()) {
-            long notifyStartTime = currentTimeMillis();
-            runAsync(() -> listener.onRollUp(new RollUpEvent<>(metricName, aggregation.getName(), sourceGranularity, targetGranularity, data.metricsPoints)));
-            log.trace("Roll up per {} notified listener {}: Took={}", targetGranularity, this, currentTimeMillis() - notifyStartTime);
-        }
-
-        log.debug("Roll up per {} done {}: Took={}ms", targetGranularity, this, currentTimeMillis() - runTimestamp);
+        log.debug("{} rolled up: Took={}ms", this, currentTimeMillis() - runStartTime);
     }
 
     private Data fetchSourceData(long nextTimestamp) {
+        long fetchStartTime = currentTimeMillis();
         Data data = new Data();
 
         try {
@@ -156,10 +144,14 @@ public class RollUp<T> implements Runnable {
             pointRepository.getConnection().close();
         }
 
+        log.trace("{} fetched: Took={}ms", this, currentTimeMillis() - fetchStartTime);
+
         return data;
     }
 
     private void aggregateData(Data data) {
+        long aggregateStartTime = currentTimeMillis();
+
         for (MetricPoints<T> metricPoints : data.metricsPoints) {
             metricPoints.getPoints()
                     .computeIfPresent(data.sourceAggregation,
@@ -183,9 +175,13 @@ public class RollUp<T> implements Runnable {
                 }
             }
         }
+
+        log.trace("{} aggregated: Took={}ms", this, currentTimeMillis() - aggregateStartTime);
     }
 
     private void saveData(Data data) {
+        long saveStartTime = currentTimeMillis();
+
         try {
             data.metricsPoints
                     .forEach(metricPoints -> pointRepository.upsertMetricPoints(metricPoints, targetGranularity));
@@ -195,6 +191,30 @@ public class RollUp<T> implements Runnable {
             throw e;
         } finally {
             pointRepository.getConnection().close();
+        }
+
+        log.trace("{} saved: Took={}ms", this, currentTimeMillis() - saveStartTime);
+    }
+
+    private void purgeExpiredData() {
+        if (purger != null) {
+            long purgStartTime = currentTimeMillis();
+            purger.run();
+            log.trace("{} purged: Took={}ms", this, currentTimeMillis() - purgStartTime);
+        }
+
+        if (rawPurger != null) {
+            long rawPurgStartTime = currentTimeMillis();
+            rawPurger.run();
+            log.trace("{} purged (raw): Took={}ms", this, currentTimeMillis() - rawPurgStartTime);
+        }
+    }
+
+    private void notifyListener(Data data) {
+        if (listener != null && data.isNotEmpty()) {
+            long notifyStartTime = currentTimeMillis();
+            runAsync(() -> listener.onRollUp(new RollUpEvent<>(metricName, aggregation.getName(), sourceGranularity, targetGranularity, data.metricsPoints)));
+            log.trace("{} notified listener: Took={}", this, currentTimeMillis() - notifyStartTime);
         }
     }
 

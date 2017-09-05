@@ -21,6 +21,10 @@ public abstract class PointPurger implements Runnable {
     }
 
     protected long lastValidTime() {
+        return lastValidTime(retention);
+    }
+
+    protected long lastValidTime(Retention retention) {
         ZonedDateTime now = truncate(ZonedDateTime.now(), retention.getUnit());
         ZonedDateTime lastValidDate = now.minus(retention);
 

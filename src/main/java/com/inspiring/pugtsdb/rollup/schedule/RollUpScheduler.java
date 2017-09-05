@@ -1,8 +1,12 @@
 package com.inspiring.pugtsdb.rollup.schedule;
 
+import com.inspiring.pugtsdb.repository.Repositories;
+import com.inspiring.pugtsdb.repository.rocks.PointRocksRepository;
+import com.inspiring.pugtsdb.repository.rocks.RocksRepositories;
 import com.inspiring.pugtsdb.rollup.RollUp;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
+import com.inspiring.pugtsdb.rollup.purge.RocksPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Retention;
 import com.inspiring.pugtsdb.util.GlobPattern;
@@ -27,15 +31,22 @@ import static java.util.stream.Collectors.toList;
 
 public class RollUpScheduler implements AutoCloseable {
 
-    private static final int INITIAL_DELAY = 60;
-
     private final ScheduledThreadPool scheduledThreadPool = new ScheduledThreadPool();
     private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new TreeMap<>(comparing(Pattern::pattern));
     private final Map<String, List<ScheduledRollUp<?>>> scheduledRollUps = new HashMap<>();
-    private final com.inspiring.pugtsdb.repository.Repositories repositories;
+    private final Repositories repositories;
+    private final RocksPointPurger rocksPointPurger;
 
-    public RollUpScheduler(com.inspiring.pugtsdb.repository.Repositories repositories) {
+    public RollUpScheduler(Repositories repositories) {
         this.repositories = repositories;
+
+        if (repositories instanceof RocksRepositories) {
+            this.rocksPointPurger = new RocksPointPurger((PointRocksRepository) repositories.getPointRepository(),
+                                                         Retention.of(2, ChronoUnit.MINUTES),
+                                                         Retention.of(1, ChronoUnit.YEARS));
+        } else {
+            this.rocksPointPurger = null;
+        }
     }
 
     public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
@@ -157,7 +168,8 @@ public class RollUpScheduler implements AutoCloseable {
         return new ScheduledRollUp<>(rollUp, scheduledFuture);
     }
 
-    public void stop() {
+    @Override
+    public void close() throws Exception {
         scheduledThreadPool.shutdown();
 
         try {
@@ -167,11 +179,10 @@ public class RollUpScheduler implements AutoCloseable {
         } catch (InterruptedException e) {
             scheduledThreadPool.shutdownNow();
         }
-    }
 
-    @Override
-    public void close() throws Exception {
-        scheduledThreadPool.shutdownNow();
+        if (rocksPointPurger != null) {
+            rocksPointPurger.close();
+        }
     }
 
     private class RollUpBuilder<T> {

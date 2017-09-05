@@ -38,7 +38,6 @@ public class PugTSDBOverRocks extends PugTSDB {
     private final RocksDB db;
     private final DBOptions dbOptions;
     private final ColumnFamilyOptions columnFamilyOptions;
-    private final BlockBasedTableConfig blockBasedTableOptions;
     private final Map<String, ColumnFamilyHandle> columnFamilyCache;
 
     public PugTSDBOverRocks(String storagePath) {
@@ -67,12 +66,13 @@ public class PugTSDBOverRocks extends PugTSDB {
                 .setNewTableReaderForCompactionInputs(true);
         this.columnFamilyOptions = new ColumnFamilyOptions()
                 .setOptimizeFiltersForHits(true)
-                .setCompactionStyle(CompactionStyle.UNIVERSAL)
                 .setCompressionType(CompressionType.LZ4_COMPRESSION)
+                .setCompactionStyle(CompactionStyle.UNIVERSAL)
+                .setDisableAutoCompactions(true)
                 .setCompactionOptionsUniversal(new CompactionOptionsUniversal()
                                                        .setMaxSizeAmplificationPercent(200)
                                                        .setCompressionSizePercent(-1));
-        this.blockBasedTableOptions = new BlockBasedTableConfig()
+        BlockBasedTableConfig blockBasedTableOptions = new BlockBasedTableConfig()
                 .setCacheIndexAndFilterBlocks(true)
                 .setBlockSize(256 * 1024);
 
@@ -101,7 +101,7 @@ public class PugTSDBOverRocks extends PugTSDB {
                     .collect(toConcurrentMap(i -> new String(columnFamilyDescriptors.get(i).columnFamilyName()),
                                              i -> columnFamilyHandles.get(i)));
 
-            log.debug("PugTSDB open. Took={}ms", currentTimeMillis() - openStart);
+            log.debug("PugTSDB open: Took={}ms", currentTimeMillis() - openStart);
         } catch (RocksDBException e) {
             throw new PugException("Cannot open RocksDB database", e);
         }
@@ -144,7 +144,7 @@ public class PugTSDBOverRocks extends PugTSDB {
         log.trace("RocksDB is closing column families options...");
         columnFamilyOptions.close();
 
-        log.debug("PugTSDB closed. Took={}ms", currentTimeMillis() - closeStart);
+        log.debug("PugTSDB closed: Took={}ms", currentTimeMillis() - closeStart);
     }
 
 //    public static void main(String[] args) throws Exception {

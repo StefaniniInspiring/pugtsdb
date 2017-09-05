@@ -5,7 +5,6 @@ import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import cucumber.api.java.After;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
-import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertNotNull;
@@ -20,7 +19,7 @@ public class PugCreationSteps {
     private Exception actualException;
 
     @After
-    public void cleanup() throws SQLException {
+    public void cleanup() throws Exception {
         if (actualPug != null) {
             try (Statement statement = actualPug.getDataSource().getConnection().createStatement()) {
                 statement.execute(" DROP ALL OBJECTS DELETE FILES ");

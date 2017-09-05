@@ -12,6 +12,7 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 public class RocksRepository implements Repository {
 
@@ -39,6 +40,14 @@ public class RocksRepository implements Repository {
         this.columnFamilyOptions = columnFamilyOptions;
         this.columnFamilyCache = columnFamilyCache;
         this.defaultColumnFamily = columnFamilyCache.get(new String(RocksDB.DEFAULT_COLUMN_FAMILY));
+    }
+
+    public void compactDB() {
+        try {
+            db.compactRange();
+        } catch (Exception e) {
+            throw new PugException("Cannot compact database", e);
+        }
     }
 
     protected ColumnFamilyHandle createColumnFamily(String name) {

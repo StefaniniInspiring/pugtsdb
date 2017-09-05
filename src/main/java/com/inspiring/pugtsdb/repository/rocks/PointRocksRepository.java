@@ -45,6 +45,10 @@ public class PointRocksRepository extends RocksRepository implements PointReposi
         this.metricRepository = metricRepository;
     }
 
+    public MetricRocksRepository getMetricRepository() {
+        return metricRepository;
+    }
+
     @Override
     public Long selectMaxPointTimestampByNameAndAggregation(String metricName, String aggregation, Granularity granularity) {
         Long timestamp = null;

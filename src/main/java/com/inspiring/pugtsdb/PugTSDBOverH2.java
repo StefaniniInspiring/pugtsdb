@@ -105,8 +105,8 @@ public class PugTSDBOverH2 extends PugTSDB {
     }
 
     @Override
-    public void close() {
-        rollUpScheduler.stop();
+    public void close() throws Exception {
+        rollUpScheduler.close();
         dataSource.dispose();
     }
 }
