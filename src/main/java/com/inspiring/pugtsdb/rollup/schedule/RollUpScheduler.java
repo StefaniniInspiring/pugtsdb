@@ -1,14 +1,10 @@
 package com.inspiring.pugtsdb.rollup.schedule;
 
 import com.inspiring.pugtsdb.repository.Repositories;
-import com.inspiring.pugtsdb.repository.rocks.PointRocksRepository;
-import com.inspiring.pugtsdb.repository.rocks.RocksRepositories;
 import com.inspiring.pugtsdb.rollup.RollUp;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
-import com.inspiring.pugtsdb.rollup.purge.RocksPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
-import com.inspiring.pugtsdb.time.Retention;
 import com.inspiring.pugtsdb.util.GlobPattern;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -35,22 +31,13 @@ public class RollUpScheduler implements AutoCloseable {
     private final Map<Pattern, List<RollUpBuilder<?>>> rollUpBuildersByGlob = new TreeMap<>(comparing(Pattern::pattern));
     private final Map<String, List<ScheduledRollUp<?>>> scheduledRollUps = new HashMap<>();
     private final Repositories repositories;
-    private final RocksPointPurger rocksPointPurger;
 
     public RollUpScheduler(Repositories repositories) {
         this.repositories = repositories;
-
-        if (repositories instanceof RocksRepositories) {
-            this.rocksPointPurger = new RocksPointPurger((PointRocksRepository) repositories.getPointRepository(),
-                                                         Retention.of(2, ChronoUnit.MINUTES),
-                                                         Retention.of(1, ChronoUnit.YEARS));
-        } else {
-            this.rocksPointPurger = null;
-        }
     }
 
-    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
-        List<RollUpBuilder<?>> rollUpBuilders = prepareRollUps(metricName, aggregation, retention, granularities);
+    public void registerRollUps(String metricName, Aggregation<?> aggregation, Granularity... granularities) {
+        List<RollUpBuilder<?>> rollUpBuilders = prepareRollUps(metricName, aggregation, granularities);
         Map<RollUp<?>, RollUpListener> rollUpListeners = new TreeMap<>(comparing((RollUp<?> rollUp) -> rollUp.getMetricName())
                                                                                .thenComparing(RollUp::getAggregation, comparing(Aggregation::getName))
                                                                                .thenComparing(RollUp::getSourceGranularity)
@@ -131,7 +118,7 @@ public class RollUpScheduler implements AutoCloseable {
         return listener;
     }
 
-    private List<RollUpBuilder<?>> prepareRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
+    private List<RollUpBuilder<?>> prepareRollUps(String metricName, Aggregation<?> aggregation, Granularity... granularities) {
         if (granularities == null || granularities.length == 0) {
             granularities = Granularity.values();
         }
@@ -142,8 +129,7 @@ public class RollUpScheduler implements AutoCloseable {
         List<RollUpBuilder<?>> newBuilders = Stream.of(granularities)
                 .map(targetGranularity -> new RollUpBuilder<>(aggregation,
                                                               sourceGranularity.getAndSet(targetGranularity),
-                                                              targetGranularity,
-                                                              retention))
+                                                              targetGranularity))
                 .collect(toList());
         curBuilders.removeIf(builder -> builder.aggregation.getName().equals(aggregation.getName()));
         curBuilders.addAll(newBuilders);
@@ -179,10 +165,6 @@ public class RollUpScheduler implements AutoCloseable {
         } catch (InterruptedException e) {
             scheduledThreadPool.shutdownNow();
         }
-
-        if (rocksPointPurger != null) {
-            rocksPointPurger.close();
-        }
     }
 
     private class RollUpBuilder<T> {
@@ -190,18 +172,16 @@ public class RollUpScheduler implements AutoCloseable {
         final Aggregation<T> aggregation;
         final Granularity sourceGranularity;
         final Granularity targetGranularity;
-        final Retention retention;
 
-        RollUpBuilder(Aggregation<T> aggregation, Granularity sourceGranularity, Granularity targetGranularity, Retention retention) {
+        RollUpBuilder(Aggregation<T> aggregation, Granularity sourceGranularity, Granularity targetGranularity) {
             this.aggregation = aggregation;
             this.sourceGranularity = sourceGranularity;
             this.targetGranularity = targetGranularity;
-            this.retention = retention;
         }
 
         @SuppressWarnings("unchecked")
         RollUp<T> build(String metricName, Map<RollUp<?>, RollUpListener> rollUpListeners) {
-            RollUp<T> rollUp = new RollUp<>(metricName, aggregation, sourceGranularity, targetGranularity, retention, repositories);
+            RollUp<T> rollUp = new RollUp<>(metricName, aggregation, sourceGranularity, targetGranularity, repositories);
             rollUp.setListener(rollUpListeners.get(rollUp));
 
             return rollUp;

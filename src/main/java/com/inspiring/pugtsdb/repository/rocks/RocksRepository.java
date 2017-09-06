@@ -12,13 +12,20 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
 
 public class RocksRepository implements Repository {
 
     public static final String METRIC_COLUMN_FAMILY = "metric";
     public static final String POINT_COLUMN_FAMILY = "point";
     static final char SEP = ':';
+    static final PugConnection CONNECTION;
+    static {
+        try {
+            CONNECTION = new PugConnection(new DummySqlConnection());
+        } catch (SQLException e) {
+            throw new PugException("Cannot create dummy SQL connection", e);
+        }
+    }
 
     protected RocksDB db;
     protected ColumnFamilyOptions columnFamilyOptions;
@@ -80,10 +87,6 @@ public class RocksRepository implements Repository {
 
     @Override
     public PugConnection getConnection() {
-        try {
-            return new PugConnection(new DummySqlConnection());
-        } catch (SQLException e) {
-            throw new PugException("Cannot create dummy SQL connection", e);
-        }
+        return CONNECTION;
     }
 }

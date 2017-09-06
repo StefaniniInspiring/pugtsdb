@@ -3,14 +3,10 @@ package com.inspiring.pugtsdb.rollup;
 import com.inspiring.pugtsdb.bean.MetricPoints;
 import com.inspiring.pugtsdb.repository.PointRepository;
 import com.inspiring.pugtsdb.repository.Repositories;
-import com.inspiring.pugtsdb.repository.rocks.RocksRepositories;
 import com.inspiring.pugtsdb.rollup.aggregation.Aggregation;
 import com.inspiring.pugtsdb.rollup.listen.RollUpEvent;
 import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
-import com.inspiring.pugtsdb.rollup.purge.AggregatedPointPurger;
-import com.inspiring.pugtsdb.rollup.purge.RawPointPurger;
 import com.inspiring.pugtsdb.time.Granularity;
-import com.inspiring.pugtsdb.time.Retention;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +33,6 @@ public class RollUp<T> implements Runnable {
     private final Granularity sourceGranularity;
     private final Granularity targetGranularity;
     private final PointRepository pointRepository;
-    private final AggregatedPointPurger purger;
-    private final RawPointPurger rawPurger;
 
     private RollUpListener<T> listener = null;
     private Long lastTimestamp = null;
@@ -47,21 +41,12 @@ public class RollUp<T> implements Runnable {
                   Aggregation<T> aggregation,
                   Granularity sourceGranularity,
                   Granularity targetGranularity,
-                  Retention retention,
                   Repositories repositories) {
         this.metricName = metricName;
         this.aggregation = aggregation;
         this.sourceGranularity = sourceGranularity;
         this.targetGranularity = targetGranularity;
         this.pointRepository = repositories.getPointRepository();
-
-        if (repositories instanceof RocksRepositories) {
-            this.purger = null;
-            this.rawPurger = null;
-        } else {
-            this.purger = new AggregatedPointPurger(metricName, aggregation, targetGranularity, retention, pointRepository);
-            this.rawPurger = sourceGranularity == null ? new RawPointPurger(metricName, pointRepository, Retention.of(1, targetGranularity.getUnit())) : null;
-        }
 
         lastTimestamp = pointRepository.selectMaxPointTimestampByNameAndAggregation(metricName, aggregation.getName(), targetGranularity);
 
@@ -118,7 +103,6 @@ public class RollUp<T> implements Runnable {
             lastTimestamp = nextTimestamp;
         }
 
-        purgeExpiredData();
         notifyListener(data);
 
         log.debug("{} rolled up: Took={}ms", this, currentTimeMillis() - runStartTime);
@@ -194,20 +178,6 @@ public class RollUp<T> implements Runnable {
         }
 
         log.trace("{} saved: Took={}ms", this, currentTimeMillis() - saveStartTime);
-    }
-
-    private void purgeExpiredData() {
-        if (purger != null) {
-            long purgStartTime = currentTimeMillis();
-            purger.run();
-            log.trace("{} purged: Took={}ms", this, currentTimeMillis() - purgStartTime);
-        }
-
-        if (rawPurger != null) {
-            long rawPurgStartTime = currentTimeMillis();
-            rawPurger.run();
-            log.trace("{} purged (raw): Took={}ms", this, currentTimeMillis() - rawPurgStartTime);
-        }
     }
 
     private void notifyListener(Data data) {

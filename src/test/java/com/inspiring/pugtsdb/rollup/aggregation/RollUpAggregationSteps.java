@@ -200,7 +200,7 @@ public class RollUpAggregationSteps {
 
     @Given("^a rollup instance$")
     public void aRollupInstance() throws Throwable {
-        rollUp = new RollUp(metric.getName(), aggregation, sourceGranularity, targetGranularity, retention, repositories);
+        rollUp = new RollUp(metric.getName(), aggregation, sourceGranularity, targetGranularity, repositories);
     }
 
     @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" plus (\\d+) \"([^\"]*)\" with a boolean \"([^\"]*)\"$")

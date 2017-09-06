@@ -15,7 +15,6 @@ import com.inspiring.pugtsdb.rollup.listen.RollUpListener;
 import com.inspiring.pugtsdb.rollup.schedule.RollUpScheduler;
 import com.inspiring.pugtsdb.time.Granularity;
 import com.inspiring.pugtsdb.time.Interval;
-import com.inspiring.pugtsdb.time.Retention;
 import java.util.List;
 
 public abstract class PugTSDB implements AutoCloseable {
@@ -173,8 +172,8 @@ public abstract class PugTSDB implements AutoCloseable {
         upsertMetricPoint(MetricPoint.of(metric, point));
     }
 
-    public void registerRollUps(String metricName, Aggregation<?> aggregation, Retention retention, Granularity... granularities) {
-        rollUpScheduler.registerRollUps(metricName, aggregation, retention, granularities);
+    public void registerRollUps(String metricName, Aggregation<?> aggregation, Granularity... granularities) {
+        rollUpScheduler.registerRollUps(metricName, aggregation, granularities);
     }
 
     public void addRollUpListener(String metricName, String aggregationName, Granularity granularity, RollUpListener listener) {

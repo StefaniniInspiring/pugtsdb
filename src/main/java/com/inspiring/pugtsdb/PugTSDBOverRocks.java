@@ -3,7 +3,10 @@ package com.inspiring.pugtsdb;
 import com.inspiring.pugtsdb.exception.PugException;
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.repository.rocks.RocksRepositories;
+import com.inspiring.pugtsdb.rollup.schedule.ScheduledRocksPointPurger;
+import com.inspiring.pugtsdb.time.Retention;
 import java.io.File;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -39,12 +42,13 @@ public class PugTSDBOverRocks extends PugTSDB {
     private final DBOptions dbOptions;
     private final ColumnFamilyOptions columnFamilyOptions;
     private final Map<String, ColumnFamilyHandle> columnFamilyCache;
+    private final ScheduledRocksPointPurger purger;
 
     public PugTSDBOverRocks(String storagePath) {
-        this(storagePath, false);
+        this(storagePath, Retention.of(2, ChronoUnit.MINUTES), Retention.of(1, ChronoUnit.YEARS), false);
     }
 
-    public PugTSDBOverRocks(String storagePath, boolean readOnly) {
+    public PugTSDBOverRocks(String storagePath, Retention rawRetention, Retention aggregatedRetention, boolean readOnly) {
         super(new RocksRepositories());
 
         if (isBlank(storagePath)) {
@@ -66,11 +70,11 @@ public class PugTSDBOverRocks extends PugTSDB {
                 .setNewTableReaderForCompactionInputs(true);
         this.columnFamilyOptions = new ColumnFamilyOptions()
                 .setOptimizeFiltersForHits(true)
-                .setCompressionType(CompressionType.LZ4_COMPRESSION)
+                .setCompressionType(CompressionType.LZ4HC_COMPRESSION)
                 .setCompactionStyle(CompactionStyle.UNIVERSAL)
                 .setDisableAutoCompactions(true)
                 .setCompactionOptionsUniversal(new CompactionOptionsUniversal()
-                                                       .setMaxSizeAmplificationPercent(200)
+                                                       .setMaxSizeAmplificationPercent(100)
                                                        .setCompressionSizePercent(-1));
         BlockBasedTableConfig blockBasedTableOptions = new BlockBasedTableConfig()
                 .setCacheIndexAndFilterBlocks(true)
@@ -107,6 +111,8 @@ public class PugTSDBOverRocks extends PugTSDB {
         }
 
         ((RocksRepositories) repositories).setRocksDb(db, columnFamilyOptions, columnFamilyCache);
+
+        this.purger = new ScheduledRocksPointPurger((RocksRepositories) repositories, rawRetention, aggregatedRetention);
     }
 
     @Override
@@ -131,6 +137,9 @@ public class PugTSDBOverRocks extends PugTSDB {
 
         log.trace("PugTSDB is closing scheduled roll ups...");
         rollUpScheduler.close();
+
+        log.trace("PugTSDB is closing scheduled purges...");
+        purger.close();
 
         log.trace("RocksDB is closing column families handles...");
         columnFamilyCache.values().forEach(ColumnFamilyHandle::close);

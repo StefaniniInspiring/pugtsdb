@@ -2,11 +2,14 @@ package com.inspiring.pugtsdb;
 
 import com.inspiring.pugtsdb.exception.PugIllegalArgumentException;
 import com.inspiring.pugtsdb.repository.h2.H2Repositories;
+import com.inspiring.pugtsdb.rollup.schedule.ScheduledPointPurger;
 import com.inspiring.pugtsdb.sql.PugConnection;
 import com.inspiring.pugtsdb.sql.PugSQLException;
+import com.inspiring.pugtsdb.time.Retention;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.temporal.ChronoUnit;
 import java.util.Scanner;
 import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -19,8 +22,13 @@ public class PugTSDBOverH2 extends PugTSDB {
 
     private final ThreadLocal<PugConnection> currentConnection;
     private final JdbcConnectionPool dataSource;
+    private final ScheduledPointPurger purger;
 
     public PugTSDBOverH2(String storagePath, String username, String password) {
+        this(storagePath, username, password, Retention.of(2, ChronoUnit.MINUTES), Retention.of(1, ChronoUnit.YEARS));
+    }
+
+    public PugTSDBOverH2(String storagePath, String username, String password, Retention rawRetention, Retention aggregatedRetention) {
         super(new H2Repositories());
 
         if (isBlank(storagePath)) {
@@ -46,6 +54,8 @@ public class PugTSDBOverH2 extends PugTSDB {
                 throw new PugSQLException("Cannot open a connection", e);
             }
         });
+
+        purger = new ScheduledPointPurger(repositories, rawRetention, aggregatedRetention);
     }
 
     private JdbcConnectionPool initDatabase(String storagePath, String username, String password) {
@@ -107,6 +117,7 @@ public class PugTSDBOverH2 extends PugTSDB {
     @Override
     public void close() throws Exception {
         rollUpScheduler.close();
+        purger.close();
         dataSource.dispose();
     }
 }

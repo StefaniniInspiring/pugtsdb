@@ -103,7 +103,7 @@ public class RollUpGranularitySteps {
     public void aRollupFromTo(long sourceGranularityValue, String sourceGranularityUnit, long targetGranularityValue, String targetGranularityUnit) throws Throwable {
         Granularity sourceGranularity = granularityOf(sourceGranularityValue, sourceGranularityUnit);
         Granularity targetGranularity = granularityOf(targetGranularityValue, targetGranularityUnit);
-        rollUps.add(new RollUp(metric.getName(), aggregation, sourceGranularity, targetGranularity, retention, repositories));
+        rollUps.add(new RollUp(metric.getName(), aggregation, sourceGranularity, targetGranularity, repositories));
     }
 
     @Given("^a point on \"([^\"]*)\" \"([^\"]*)\" with a double (\\d+)$")
