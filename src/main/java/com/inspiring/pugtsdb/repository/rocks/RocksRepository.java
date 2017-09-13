@@ -12,13 +12,18 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RocksRepository implements Repository {
+
+    private static final Logger log = LoggerFactory.getLogger(RocksRepository.class);
 
     public static final String METRIC_COLUMN_FAMILY = "metric";
     public static final String POINT_COLUMN_FAMILY = "point";
     static final char SEP = ':';
     static final PugConnection CONNECTION;
+
     static {
         try {
             CONNECTION = new PugConnection(new DummySqlConnection());
@@ -55,6 +60,14 @@ public class RocksRepository implements Repository {
         } catch (Exception e) {
             throw new PugException("Cannot compact database", e);
         }
+
+        columnFamilyCache.forEach((cfName, cfHandle) -> {
+            try {
+                db.compactRange(cfHandle);
+            } catch (Exception e) {
+                log.warn("Cannot compact column family {}: {}", cfName, e.getMessage());
+            }
+        });
     }
 
     protected ColumnFamilyHandle createColumnFamily(String name) {

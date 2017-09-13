@@ -71,6 +71,7 @@ public class PugTSDBOverRocks extends PugTSDB {
         this.columnFamilyOptions = new ColumnFamilyOptions()
                 .setOptimizeFiltersForHits(true)
                 .setCompressionType(CompressionType.LZ4HC_COMPRESSION)
+                .setBottommostCompressionType(CompressionType.LZ4HC_COMPRESSION)
                 .setCompactionStyle(CompactionStyle.UNIVERSAL)
                 .setDisableAutoCompactions(true)
                 .setCompactionOptionsUniversal(new CompactionOptionsUniversal()
@@ -78,7 +79,7 @@ public class PugTSDBOverRocks extends PugTSDB {
                                                        .setCompressionSizePercent(-1));
         BlockBasedTableConfig blockBasedTableOptions = new BlockBasedTableConfig()
                 .setCacheIndexAndFilterBlocks(true)
-                .setBlockSize(256 * 1024);
+                .setBlockSize(512 * 1024);
 
         try (Options options = new Options(dbOptions, columnFamilyOptions).setTableFormatConfig(blockBasedTableOptions)) {
             log.debug("PugTSDB is opening...");
