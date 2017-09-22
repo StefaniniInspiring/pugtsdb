@@ -7,7 +7,6 @@ import com.inspiring.pugtsdb.repository.rocks.bean.MetaMetric;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +22,14 @@ import static com.inspiring.pugtsdb.util.Serializer.serialize;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * <p>Repository with Metric metadatas.</p>
+ * <p>The column families have this format:</p>
+ *
+ * <b>Column Family name:</b> metric
+ * <b>Key:   </b> <i>name of the metric</i><br>
+ * <b>Value: </b> <i>serialized metadata. Ex.:</i>{class:com.inspiring.metric.OsUptime, tagsById:{2131i2398:{a:1, b:2}, 43223829038:{}}}
+ */
 public class MetricRocksRepository extends RocksRepository implements MetricRepository {
 
     private final Map<String, Set<String>> metricIdCache = new ConcurrentHashMap<>();
@@ -130,7 +137,8 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
                 db.put(intoMetricColumnFamily(), nameBytes, serialize(meta));
 
                 if (ids == null) {
-                    ids = new HashSet<>(meta.getTagsById().keySet());
+                    ids = ConcurrentHashMap.newKeySet(meta.getTagsById().size());
+                    ids.addAll(meta.getTagsById().keySet());
                 } else {
                     ids.add(metric.getId());
                 }
@@ -149,12 +157,14 @@ public class MetricRocksRepository extends RocksRepository implements MetricRepo
                 byte[] metaBytes = db.get(fromMetricColumnFamily(), serialize(name));
 
                 if (metaBytes == null) {
-                    return new HashSet<>();
+                    return ConcurrentHashMap.newKeySet();
                 }
 
                 MetaMetric meta = deserialize(metaBytes, MetaMetric.class);
+                Set<String> ids = ConcurrentHashMap.newKeySet(meta.getTagsById().size());
+                ids.addAll(meta.getTagsById().keySet());
 
-                return new HashSet<>(meta.getTagsById().keySet());
+                return ids;
             } catch (RocksDBException e) {
                 throw new PugException("Cannot populate cache with metric " + metricName + " IDs", e);
             }

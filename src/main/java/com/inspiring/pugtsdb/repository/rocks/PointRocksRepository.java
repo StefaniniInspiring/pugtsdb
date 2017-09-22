@@ -26,6 +26,14 @@ import static java.text.MessageFormat.format;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * <p>Repository for points.</p>
+ * <p>The column families have this format:</p>
+ *
+ * <b>Column Family name:</b> point:<i>aggregation</i>:<i>granularity</i><br>
+ * <b>Key:   </b> ID + timestamp<br>
+ * <b>Value: </b> <i>serialized metric value</i>
+ */
 public class PointRocksRepository extends RocksRepository implements PointRepository {
 
     private static final Long LAST_TIMESTAMP = 9999999999999L;
